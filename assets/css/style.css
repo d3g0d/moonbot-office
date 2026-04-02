@@ -1,0 +1,84 @@
+/* Custom styles to supplement Tailwind */
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for Webkit browsers */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Sidebar Gradient */
+.bg-sidebar-gradient {
+    /* Custom 4-color gradient: #4EDAF6 -> #0A2435 -> #0A2435 -> #74F2E5 */
+
+    background: radial-gradient(369.85% 100% at 100% 0%, #3CE5BF 0%, #034F6E 100%);
+
+    color: #fff;
+}
+
+.bg-login {
+    background: linear-gradient(252.25deg, #43E4C6 -0.51%, #005376 103.22%);
+}
+
+/* Transition classes */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+/* ===== Table Column Width Utilities ===== */
+/* Use these classes on <th> and <td> to force column widths in auto-layout tables */
+
+.col-w-140 {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+.col-w-180 {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+/* Responsive column: 140px mobile, 180px desktop */
+.col-w-140-md-180 {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+    word-break: break-all;
+    overflow-wrap: break-word;
+}
+
+@media (min-width: 768px) {
+    .col-w-140-md-180 {
+        width: 180px !important;
+        min-width: 180px !important;
+        max-width: 180px !important;
+    }
+}

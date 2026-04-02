@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moonbot Office</title>
+
+    <!-- Tailwind CSS (Dev CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+
+        // Global Error Handler for debugging
+        window.addEventListener('error', function (e) {
+            document.body.innerHTML += '<div style="color:red; padding:20px; background:white; position:fixed; top:0; left:0; z-index:9999; border:2px solid red;">' +
+                '<strong>JS Error:</strong> ' + e.message + '<br>' +
+                'Checking console (F12) for details.' +
+                '</div>';
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            document.body.innerHTML += '<div style="color:red; padding:20px; background:white; position:fixed; top:50px; left:0; z-index:9999; border:2px solid red;">' +
+                '<strong>Promise Error:</strong> ' + e.reason + '<br>' +
+                '</div>';
+        });
+    </script>
+
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./assets/css/style.css?v=5">
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Vue 3 & Vue Router 4 (ES Modules) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js",
+            "vue-router": "https://unpkg.com/vue-router@4/dist/vue-router.esm-browser.js",
+            "@vue/devtools-api": "https://unpkg.com/@vue/devtools-api@6/lib/esm/index.js"
+        }
+    }
+    </script>
+</head>
+
+<body class="bg-gray-50 text-gray-800 antialiased">
+    <div id="app">
+        <router-view></router-view>
+
+    </div>
+
+    <!-- Main Application Entry -->
+    <script type="module" src="./js/app.js?v=7"></script>
+</body>
+
+</html>
