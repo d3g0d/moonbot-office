@@ -733,7 +733,7 @@ export default {
 
                             <!-- Custom Leader Cell -->
                             <template #cell-leader="{ value }">
-                                <span @click="selectLeader(value)" class="text-[#00A3FF] underline cursor-pointer hover:text-blue-600">
+                                <span @click="selectLeader(value)" class="text-[#00A3FF] underline cursor-pointer hover:text-blue-600 font-medium">
                                     {{ value }}
                                 </span>
                             </template>
@@ -872,32 +872,20 @@ export default {
                             <template #row-actions></template>
                             
                             <template #table-prepend>
-                                <tr class="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-900 text-xs">
-                                    <!-- ID -->
-                                    <td class="px-3 md:px-4 py-2.5"></td>
-                                    <!-- Username -->
-                                    <td class="sticky left-0 bg-white z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words py-2.5">
+                                <tr class="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-900 text-xs text-center">
+                                    <td class="px-3 md:px-4 py-2.5 text-left"></td>
+                                    <td class="sticky left-0 bg-white z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words py-2.5 text-left">
                                         {{ formatNumber(drilldownSummary.total) }} User
                                     </td>
-                                    <!-- Paket -->
                                     <td class="px-4 py-2.5 w-[100px] min-w-[100px]"></td>
-                                    <!-- TGL Join -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px]"></td>
-                                    <!-- Activate -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.activate) }} User</td>
-                                    <!-- API Bind -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.api_bind) }} User</td>
-                                    <!-- Credit -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.credit) }} User</td>
-                                    <!-- Bot Run -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.bot_run) }} User</td>
-                                    <!-- Hari Dari Join -->
                                     <td class="px-4 py-2.5 w-[120px] min-w-[120px]"></td>
-                                    <!-- Upline 6 -->
                                     <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
-                                    <!-- Upline 3 -->
                                     <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
-                                    <!-- No HP -->
                                     <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
                                 </tr>
                             </template>

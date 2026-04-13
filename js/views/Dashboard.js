@@ -238,18 +238,14 @@ export default {
                                 <td v-for="(ex, key) in stats.by_exchanger" :key="key" class="px-4 py-2.5 text-center border-r border-gray-50">
                                     <div v-if="ex.health">
                                         {{ formatNumber(ex.health.healthy_users) }}<span class="text-[10px] text-gray-400 mx-1">/</span>{{ formatNumber(ex.health.total_eligible) }}
-                                        <div class="mt-1 text-[10px] font-bold" :class="ex.health.health_index > 0.7 ? 'text-green-500' : 'text-orange-500'">
-                                            Index: {{ ex.health.health_index || '-' }}
-                                        </div>
+                                        
                                     </div>
                                     <span v-else>-</span>
                                 </td>
                                 <td class="px-4 py-2.5 text-center bg-blue-50/10 font-bold text-gray-900">
                                     <div v-if="stats.global?.health">
                                         {{ formatNumber(stats.global.health.healthy_users) }}<span class="text-[10px] text-gray-400 mx-1">/</span>{{ formatNumber(stats.global.health.total_eligible) }}
-                                        <div class="mt-1 text-[10px]" :class="stats.global.health.health_index > 0.7 ? 'text-green-500' : 'text-orange-500'">
-                                            Index: {{ stats.global.health.health_index }}
-                                        </div>
+                                        
                                     </div>
                                 </td>
                             </tr>

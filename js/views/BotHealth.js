@@ -754,8 +754,8 @@ export default {
 
                     <template #cell-floating="{ value }">
                         <div class="flex justify-center">
-                            <span v-if="value == 0 || value == '0'" class="text-red-500 font-bold text-sm">YES</span>
-                            <span v-else class="text-green-500 font-bold text-sm">NO</span>
+                            <span v-if="value == 0 || value == '0'" class="text-green-500 font-bold text-sm">NO</span>
+                            <span v-else class="text-red-500 font-bold text-sm">YES</span>
                         </div>
                     </template>
 
@@ -767,8 +767,8 @@ export default {
 
                     <template #cell-insufficient_credit="{ value }">
                         <div class="flex justify-center">
-                            <span v-if="value == 0 || value == '0'" class="text-red-500 font-bold text-sm">YES</span>
-                            <span v-else class="text-green-500 font-bold text-sm">NO</span>
+                            <span v-if="value == 0 || value == '0'" class="text-green-500 font-bold text-sm">NO</span>
+                            <span v-else class="text-red-500 font-bold text-sm">YES</span>
                         </div>
                     </template>
 
