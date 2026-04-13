@@ -1,6 +1,6 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
 import SearchInput from '../components/SearchInput.js?v=2';
-import DataTable from '../components/DataTable.js?v=11';
+import DataTable from '../components/DataTable.js?v=32';
 import ActionDropdown from '../components/ActionDropdown.js?v=2';
 import Modal from '../components/Modal.js?v=2';
 import FormInput from '../components/FormInput.js?v=2';
@@ -103,7 +103,7 @@ export default {
         async fetchRoles() {
             try {
                 const response = await fetchApi('/roles');
-                this.roles = response.data || [];
+                this.roles = (response.data || []).filter(r => (r.name || '').toLowerCase().replace(/\s/g, '') !== 'superadmin');
                 // Set default role if available
                 if (this.roles.length > 0 && !this.formData.role_id) {
                     const adminRole = this.roles.find(r => r.name === 'admin');

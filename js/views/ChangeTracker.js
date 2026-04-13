@@ -1,6 +1,9 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=11';
+import DataTable from '../components/DataTable.js?v=32';
 import SearchInput from '../components/SearchInput.js';
+import DatePicker from '../components/DatePicker.js?v=2';
+import { fetchApi } from '../utils/api.js?v=4';
+import { formatNumber } from '../utils/formatters.js';
 
 export default {
     name: 'ChangeTracker',
@@ -11,159 +14,212 @@ export default {
     },
     data() {
         return {
+            loading: false,
+            error: null,
             filters: {
-                month: 'Oct 2026',
-                leader: '6 ⭐',
+                month: new Date().toISOString().slice(0, 7), // YYYY-MM
+                leader: 'All',
                 vipPlan: 'All'
+            },
+            monthPickerConfig: {
+                plugins: [
+                    typeof monthSelectPlugin !== 'undefined' ? new monthSelectPlugin({
+                        shorthand: true,
+                        dateFormat: "Y-m",
+                        altFormat: "M Y",
+                        theme: "light"
+                    }) : null
+                ].filter(Boolean)
             },
             searchQuery: '',
             internalSearchQuery: '',
-            columns: [
-                
+            trackerData: [],
+            monthLabels: [],
+            pagination: {
+                page: 1,
+                limit: 25,
+                totalItems: 0,
+                totalPages: 0
+            },
+            sort: {
+                sortBy: '',
+                sortDir: 'desc'
+            }
+        }
+    },
+    computed: {
+        columns() {
+            const labels = this.monthLabels.length === 4 ? this.monthLabels : [];
+            
+            const getMonthName = (dateStr) => {
+                if (!dateStr) return '';
+                const [y, m] = dateStr.split('-');
+                return new Date(y, m - 1, 1).toLocaleString('default', { month: 'short' }).toUpperCase();
+            };
+
+            const baseLabel = labels[0] ? `CONVERSION BOT RUN (${getMonthName(labels[0])})` : 'CONVERSION BOT RUN';
+            const incLabel1 = labels[1] ? `+${getMonthName(labels[1])}` : 'N+1';
+            const incLabel2 = labels[2] ? `+${getMonthName(labels[2])}` : 'N+2';
+            const incLabel3 = labels[3] ? `+${getMonthName(labels[3])}` : 'N+3';
+
+            return [
                 { 
                     key: 'leader', 
                     label: 'LEADER', 
                     sortable: true,
-                    thClass: 'sticky top-0 left-10 md:left-16 bg-white z-40  whitespace-nowrap !px-2 md:!px-6 min-w-[140px]',
-                    class: 'sticky left-10 md:left-16 bg-white group-hover:bg-gray-50 z-10   whitespace-nowrap !px-2 md:!px-6 min-w-[140px]'
+                    thClass: 'sticky top-0 left-0 bg-white z-40 whitespace-nowrap !px-4 md:!px-6 min-w-[140px]',
+                    class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 whitespace-nowrap !px-4 md:!px-6 min-w-[140px]'
                 },
-                { key: 'vipPlan', label: 'VIP PLAN', sortable: true, align: 'center' },
-                { key: 'time', label: 'TIME', sortable: true, align: 'center' },
-                { key: 'conversion', label: 'CONVERSION BOT RUN (OKT)', sortable: true, align: 'center' },
-                { key: 'nov', label: '+NOV', sortable: true, align: 'center' },
-                { key: 'des', label: '+DES', sortable: true, align: 'center' },
-                { key: 'cumulative', label: 'CUMULATIVE', sortable: true, align: 'center' },
-                { key: 'totalJoin', label: 'TOTAL JOIN', sortable: true, align: 'center' }
-            ],
-            trackerData: [
-                { id: 1, leader: 'Moonbot_LeaderD12', vipPlan: 'Advance', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 2, leader: 'RizkyFlow', vipPlan: 'Advance', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 3, leader: 'luna_77', vipPlan: 'Basic', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 4, leader: 'SultanMoon', vipPlan: 'Pro+', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 5, leader: 'FajarNova', vipPlan: 'Pro+', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 6, leader: 'AstroCuan', vipPlan: 'Pro+', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 7, leader: 'CandleHunter', vipPlan: 'Basic', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 8, leader: 'CryptoSenja+', vipPlan: 'Pro+', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'xx.x %', totalJoin: 'xxxx' },
-                { id: 9, leader: 'MoonTrader88', vipPlan: 'Advance', time: 'Okt', conversion: 'xx.x %', nov: 'xx.x %', des: 'xx.x %', cumulative: 'v %', totalJoin: 'xxxx' }
-            ]
+                { key: 'total_join', label: 'TOTAL JOIN', sortable: true, align: 'center' },
+                { key: 'base_bot_run_pct', label: baseLabel, sortable: true, align: 'center' },
+                { key: 'inc_1', label: incLabel1, sortable: false, align: 'center' },
+                { key: 'inc_2', label: incLabel2, sortable: false, align: 'center' },
+                { key: 'inc_3', label: incLabel3, sortable: false, align: 'center' },
+                { key: 'cumulative_pct', label: 'CUMULATIVE', sortable: true, align: 'center' }
+            ];
         }
     },
-    computed: {
-        filteredData() {
-            let data = this.trackerData;
-            
-            // Global search
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                data = data.filter(item =>
-                    item.leader.toLowerCase().includes(query) ||
-                    item.vipPlan.toLowerCase().includes(query)
-                );
-            }
+    watch: {
+        filters: {
+            handler() {
+                this.pagination.page = 1;
+                this.fetchChangeTracker();
+            },
+            deep: true
+        },
+        internalSearchQuery(newVal) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.pagination.page = 1;
+                this.fetchChangeTracker();
+            }, 500);
+        }
+    },
+    mounted() {
+        this.fetchChangeTracker();
+    },
+    methods: {
+        formatNumber,
+        async fetchChangeTracker() {
+            this.loading = true;
+            this.error = null;
+            try {
+                const [year, month] = this.filters.month.split('-');
+                const params = new URLSearchParams({
+                    month: parseInt(month).toString(),
+                    year: year,
+                    page: this.pagination.page,
+                    limit: this.pagination.limit,
+                    sort_by: this.sort.sortBy || '',
+                    sort_dir: this.sort.sortDir || 'desc'
+                });
 
-            // Internal table search
-            if (this.internalSearchQuery) {
-                const query = this.internalSearchQuery.toLowerCase();
-                data = data.filter(item =>
-                    item.leader.toLowerCase().includes(query)
-                );
+                if (this.internalSearchQuery) {
+                    params.append('exact_leader', this.internalSearchQuery);
+                }
+
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('leader', rank);
+                }
+
+                const response = await fetchApi(`/pipeline/change-tracker?${params.toString()}`);
+                if (response.success && response.data) {
+                    this.monthLabels = response.data.month_labels || [];
+                    this.trackerData = (response.data.leaders || []).map((item, index) => ({
+                        id: index + 1,
+                        ...item
+                    }));
+                    if (response.data.pagination) {
+                        this.pagination.totalItems = response.data.pagination.total || 0;
+                        this.pagination.totalPages = response.data.pagination.total_pages || 0;
+                        this.pagination.page = response.data.pagination.current_page || 1;
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch change tracker:', err);
+                this.error = 'Failed to load change tracker data.';
+            } finally {
+                this.loading = false;
             }
-            
-            if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
-                data = data.filter(item => item.vipPlan === this.filters.vipPlan);
-            }
-            return data;
+        },
+        handlePageChange({ page, rowsPerPage }) {
+            this.pagination.page = page;
+            this.pagination.limit = rowsPerPage;
+            this.fetchChangeTracker();
+        },
+        handleSortChange({ key, order }) {
+            this.sort.sortBy = key;
+            this.sort.sortDir = order;
+            this.pagination.page = 1;
+            this.fetchChangeTracker();
         }
     },
     template: `
         <MainLayout>
             <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-gray-900">Change Tracker</h1>
-            </div>
-
-            <!-- Filters Area -->
-            <div class="flex flex-wrap items-center gap-4 mb-8">
+            </div>            <div class="flex flex-wrap items-center gap-4 mb-8">
                 <!-- Month Filter -->
                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-200 text-gray-700 rounded-full shadow-sm overflow-hidden px-4 py-2">
-                        <span class="text-gray-500 mr-2">Month:</span>
-                        <select v-model="filters.month" class="appearance-none bg-transparent focus:outline-none cursor-pointer pr-6 font-medium">
-                            <option>Oct 2026</option>
-                            <option>Nov 2026</option>
-                            <option>Dec 2026</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-500">
-                             <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <DatePicker v-model="filters.month" :config="monthPickerConfig">
+                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
+                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Month:</span>
+                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.month || 'Select Month' }}</span>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
                         </div>
-                    </div>
+                    </DatePicker>
                 </div>
-
+ 
                 <!-- Leader Filter -->
                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-200 text-gray-700 rounded-full shadow-sm overflow-hidden px-4 py-2">
-                        <span class="text-gray-500 mr-2">Leader :</span>
-                        <select v-model="filters.leader" class="appearance-none bg-transparent focus:outline-none cursor-pointer pr-6 font-medium">
-                            <option>6 ⭐</option>
-                            <option>Main Leader</option>
+                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
+                        <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                            <option value="All">All</option>
+                            <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-500">
-                             
-                             <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
-                </div>
-
-                 <!-- VIP Plan Filter -->
-                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-200 text-gray-700 rounded-full shadow-sm overflow-hidden px-4 py-2">
-                        <span class="text-gray-500 mr-2">VIP Plan :</span>
-                        <select v-model="filters.vipPlan" class="appearance-none bg-transparent focus:outline-none cursor-pointer pr-6 font-medium">
-                            <option>All</option>
-                            <option>Basic</option>
-                            <option>Advance</option>
-                            <option>Pro+</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-gray-500">
-                             <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Global Search -->
-                <div class="relative bg-white border border-gray-200 rounded-full shadow-sm flex items-center px-4 py-2 w-64 ml-4">
-                    <input type="text" v-model="searchQuery" placeholder="Search" class="appearance-none bg-transparent focus:outline-none w-full text-gray-700" />
-                    <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
                 </div>
             </div>
-
-            <!-- Table Card -->
+           <!-- Table Card -->
             <div class="bg-white rounded-lg shadow-lg p-6">
-                <!-- Data Table Toolbar (Internal Search) -->
-                <div class="flex flex-wrap md:flex-nowrap justify-start items-center mb-6">
+                 <!-- Data Table Toolbar (Internal Search) -->
+                 <div class="flex flex-wrap md:flex-nowrap justify-start items-center mb-6">
                     <div class="w-full md:w-64 h-11 relative">
-                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        <input 
-                            type="text" 
-                            v-model="internalSearchQuery" 
-                            placeholder="Search" 
-                            class="w-full h-full pl-9 pr-4 text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" 
-                        />
+                        <SearchInput v-model="internalSearchQuery" placeholder="Exact Leader" class="h-full border-gray-200 text-sm" />
                     </div>
                 </div>
 
                 <div class="bg-white">
+                    <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00A3FF] mb-4"></div>
+                        <p class="text-gray-500 text-sm">Loading tracker data...</p>
+                    </div>
+
+                    <div v-else-if="error" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 flex justify-between items-center">
+                        <span>{{ error }}</span>
+                        <button @click="fetchChangeTracker" class="text-xs font-bold uppercase tracking-wider hover:underline">Retry</button>
+                    </div>
+
                     <DataTable 
+                        v-else
                         :columns="columns" 
-                        :data="filteredData"
-                        :defaultRowsPerPage="25"
-                        :rowsPerPageOptions="[10, 25, 50]"
-                        :stickyIndex="true"
+                        :data="trackerData"
+                        server-side
+                        :total-items="pagination.totalItems"
+                        :total-pages="pagination.totalPages"
+                        :current-page="pagination.page"
+                        :default-rows-per-page="pagination.limit"
+                        :sort-by="sort.sortBy"
+                        :sort-order="sort.sortDir"
+                        @page-change="handlePageChange"
+                        @sort-change="handleSortChange"
                     >
                         <!-- Hide ACTION column header & cells -->
                         <template #action-header><th></th></template>
@@ -181,19 +237,41 @@ export default {
                             </span>
                         </template>
                         
-                        <!-- VIP Plan styling to match Pipeline -->
-                        <template #cell-vipPlan="{ value }">
-                            <span class="text-gray-900 font-medium">{{ value }}</span>
+                        <!-- Base Conversion styling -->
+                        <template #cell-base_bot_run_pct="{ value }">
+                            <span class="text-gray-900 font-medium">{{ value !== null ? value + '%' : '0%' }}</span>
                         </template>
-                        
-                        <!-- Value styling -->
-                        <template #cell-conversion="{ value }">
-                            <span class="text-gray-900 font-medium">{{ value }}</span>
+
+                        <!-- Increment slots -->
+                        <template #cell-inc_1="{ row }">
+                            <span class="text-gray-900 font-medium">
+                                {{ row.increments && row.increments[0] ? row.increments[0].pct + '%' : '0%' }}
+                            </span>
+                        </template>
+
+                        <template #cell-inc_2="{ row }">
+                            <span class="text-gray-900 font-medium">
+                                {{ row.increments && row.increments[1] ? row.increments[1].pct + '%' : '0%' }}
+                            </span>
+                        </template>
+
+                        <template #cell-inc_3="{ row }">
+                            <span class="text-gray-900 font-medium">
+                                {{ row.increments && row.increments[2] ? row.increments[2].pct + '%' : '0%' }}
+                            </span>
+                        </template>
+
+                        <template #cell-cumulative_pct="{ value }">
+                            <span class="text-gray-900 font-medium">{{ value !== null ? value + '%' : '0%' }}</span>
+                        </template>
+
+                        <template #cell-total_join="{ value }">
+                            <span class="text-gray-900 font-medium">{{ value !== null && value !== undefined ? formatNumber(value) : '-' }}</span>
                         </template>
                     </DataTable>
                     
                     <div class="flex justify-end mt-2 text-xs text-gray-500">
-                        Last Updated: 12/13/2026 08:00 PM (GMT+7)
+                        Live Stats
                     </div>
                 </div>
             </div>

@@ -1,9 +1,9 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=31';
+import DataTable from '../components/DataTable.js?v=32';
 import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import { formatRank, formatPercentWithDays, formatNumber } from '../utils/formatters.js';
-import { fetchApi } from '../utils/api.js?v=4';
+import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 
 export default {
     name: 'Pipeline',
@@ -21,6 +21,10 @@ export default {
                 month: new Date().toISOString().slice(0, 7), // YYYY-MM
                 leader: 'All',
                 vipPlan: ''
+            },
+            sort: {
+                sortBy: '',
+                sortDir: 'desc'
             },
             monthPickerConfig: {
                 plugins: [
@@ -52,12 +56,12 @@ export default {
                  
                 { key: 'leader', label: 'LEADER', sortable: true , thClass: 'sticky top-0 left-0 bg-white z-40 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words',
                     class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words'},
-                { key: 'total_join', label: 'JOIN', sortable: true, align: 'center' },
-                { key: 'activate_pct', label: 'ACTIVATE', sortable: true, align: 'center' },
-                { key: 'api_bind_pct', label: 'API BIND', sortable: true, align: 'center' },
-                { key: 'credit_pct', label: 'CREDIT', sortable: true, align: 'center' },
-                { key: 'bot_run_pct', label: 'BOT RUN', sortable: true, align: 'center' },
-                { key: 'avg_lead_time_days', label: 'AVERAGE LEAD TIME', sortable: true, align: 'center' }
+                { key: 'total_join', label: 'JOIN', sortable: true, align: 'center', colWidth: '100px' },
+                { key: 'activate_pct', label: 'ACTIVATE', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'api_bind_pct', label: 'API BIND', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'credit_pct', label: 'CREDIT', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'bot_run_pct', label: 'BOT RUN', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'avg_lead_time_days', label: 'AVERAGE LEAD TIME', sortable: true, align: 'center', colWidth: '150px' }
             ],
             pipelineData: [],
             selectedLeader: null,
@@ -71,16 +75,16 @@ export default {
             drilldownColumns: [
                 { key: 'username', label: 'USERNAME', sortable: true , thClass: 'sticky top-0 left-0 bg-white z-40 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words',
                     class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words'},
-                { key: 'vip_level', label: 'PAKET', sortable: true, align: 'center' },
-                { key: 'join_date', label: 'TGL JOIN', sortable: true, align: 'center' },
-                { key: 'activate', label: 'ACTIVATE', sortable: true, align: 'center' },
-                { key: 'api_bind', label: 'API BIND', sortable: true, align: 'center' },
-                { key: 'credit', label: 'CREDIT', sortable: true, align: 'center' },
-                { key: 'bot_run', label: 'BOT RUN', sortable: true, align: 'center' },
-                { key: 'days_from_join', label: 'HARI DARI JOIN', sortable: true, align: 'center' },
-                { key: 'upline', label: 'UPLINE RANK 6', sortable: true, align: 'center' },
-                { key: 'sponsor', label: 'UPLINE RANK 3', sortable: true, align: 'center' },
-                { key: 'msisdn', label: 'NO HP', sortable: true, align: 'center' }
+                { key: 'vip_level', label: 'PAKET', sortable: true, align: 'center', colWidth: '100px' },
+                { key: 'join_date', label: 'TGL JOIN', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'activate', label: 'ACTIVATE', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'api_bind', label: 'API BIND', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'credit', label: 'CREDIT', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'bot_run', label: 'BOT RUN', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'days_from_join', label: 'HARI DARI JOIN', sortable: true, align: 'center', colWidth: '120px' },
+                { key: 'upper_upline', label: 'UPLINE RANK 6', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'upline', label: 'UPLINE RANK 3', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'msisdn', label: 'NO HP', sortable: true, align: 'center', colWidth: '150px' }
             ],
             drilldownData: [],
             drilldownSummary: {
@@ -95,6 +99,10 @@ export default {
                 limit: 50,
                 totalItems: 0,
                 totalPages: 0
+            },
+            drilldownSort: {
+                sortBy: '',
+                sortDir: 'desc'
             },
             pagination: {
                 page: 1,
@@ -120,6 +128,58 @@ export default {
                             { label: 'A+', value: '2' },
                             { label: 'P+', value: '3' }
                         ]
+                    },
+                    {
+                        type: 'radio-group',
+                        label: 'Activate',
+                        key: 'activate',
+                        options: [
+                            { label: 'All', value: '' },
+                            { label: 'Done', value: '1' },
+                            { label: 'Not Done', value: '0' }
+                        ]
+                    },
+                    {
+                        type: 'radio-group',
+                        label: 'API Bind',
+                        key: 'api_bind',
+                        options: [
+                            { label: 'All', value: '' },
+                            { label: 'Done', value: '1' },
+                            { label: 'Not Done', value: '0' }
+                        ]
+                    },
+                    {
+                        type: 'radio-group',
+                        label: 'Credit',
+                        key: 'credit',
+                        options: [
+                            { label: 'All', value: '' },
+                            { label: 'Done', value: '1' },
+                            { label: 'Not Done', value: '0' }
+                        ]
+                    },
+                    {
+                        type: 'radio-group',
+                        label: 'Bot Run',
+                        key: 'bot_run',
+                        options: [
+                            { label: 'All', value: '' },
+                            { label: 'Done', value: '1' },
+                            { label: 'Not Done', value: '0' }
+                        ]
+                    },
+                    {
+                        type: 'text',
+                        label: 'Upline Rank 3',
+                        key: 'upline',
+                        placeholder: 'Username'
+                    },
+                    {
+                        type: 'text',
+                        label: 'Upline Rank 6',
+                        key: 'upper_upline',
+                        placeholder: 'Username'
                     }
                 ];
             } else {
@@ -140,40 +200,36 @@ export default {
             }
         },
         filteredLeaders() {
-            let data = this.pipelineData;
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                data = data.filter(item =>
-                    (item.leader || '').toLowerCase().includes(query)
-                );
-            }
-            return data;
+            return this.pipelineData;
         },
         filteredDrilldownData() {
-            let data = this.drilldownData;
-            if (this.drilldownSearchQuery) {
-                const query = this.drilldownSearchQuery.toLowerCase();
-                data = data.filter(item =>
-                    (item.username || '').toLowerCase().includes(query)
-                );
-            }
-            // Basic local filtering (though API handles most)
-            if (this.activeFilters && Object.keys(this.activeFilters).length > 0) {
-                if (this.activeFilters.paket) {
-                    // Mapping paket ID back to label if needed, or just skip if API does the work
-                    // For now, let's keep it consistent with the API
-                }
-            }
-            return data;
+            return this.drilldownData;
         }
     },
     watch: {
+        searchQuery(newVal) {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.pagination.page = 1;
+                this.fetchSummary();
+                this.fetchLeaders();
+            }, 500);
+        },
         filters: {
             handler() {
                 this.fetchSummary();
                 this.fetchLeaders();
             },
             deep: true
+        },
+        drilldownSearchQuery(newVal) {
+            clearTimeout(this.drilldownSearchTimeout);
+            this.drilldownSearchTimeout = setTimeout(() => {
+                if (this.selectedLeader) {
+                    this.drilldownPagination.page = 1;
+                    this.fetchDrilldown(this.selectedLeader);
+                }
+            }, 500);
         }
     },
     mounted() {
@@ -195,17 +251,37 @@ export default {
             this.pagination.limit = rowsPerPage;
             this.fetchLeaders();
         },
+        handleSortChange({ key, order }) {
+            this.sort.sortBy = key;
+            this.sort.sortDir = order;
+            this.pagination.page = 1;
+            this.fetchLeaders();
+        },
         handleDrilldownPageChange({ page, rowsPerPage }) {
             this.drilldownPagination.page = page;
             this.drilldownPagination.limit = rowsPerPage;
+            this.fetchDrilldown(this.selectedLeader);
+        },
+        handleDrilldownSortChange({ key, order }) {
+            this.drilldownSort.sortBy = key;
+            this.drilldownSort.sortDir = order;
+            this.drilldownPagination.page = 1;
             this.fetchDrilldown(this.selectedLeader);
         },
         async fetchSummary() {
             try {
                 const params = new URLSearchParams();
                 
+                // Add Rank (from filters.leader)
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('rank', rank);
+                }
+
                 if (this.filters.month) {
-                    params.append('month', this.filters.month);
+                    const [year, month] = this.filters.month.split('-');
+                    params.append('join_month', parseInt(month).toString());
+                    params.append('join_year', year);
                 }
                 
                 if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
@@ -272,15 +348,27 @@ export default {
                     limit: this.pagination.limit
                 });
                 
+                // Add Rank (from filters.leader)
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('rank', rank);
+                }
+
                 if (this.filters.month) {
-                    params.append('month', this.filters.month);
+                    const [year, month] = this.filters.month.split('-');
+                    params.append('join_month', parseInt(month).toString());
+                    params.append('join_year', year);
                 }
                 
                 if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
                     params.append('plan', this.filters.vipPlan);
                 }
 
-                if (this.searchQuery) params.append('search', this.searchQuery);
+                if (this.searchQuery) params.append('leader', this.searchQuery);
+
+                // Sorting
+                params.append('sort_by', this.sort.sortBy || '');
+                params.append('sort_dir', this.sort.sortDir || 'desc');
 
                 const response = await fetchApi(`/pipeline/leaders?${params.toString()}`);
                 if (response.success) {
@@ -317,22 +405,33 @@ export default {
                 }
 
                 if (this.filters.month) {
-                    params.append('month', this.filters.month);
+                    const [year, month] = this.filters.month.split('-');
+                    params.append('join_month', parseInt(month).toString());
+                    params.append('join_year', year);
                 }
                 
                 if (this.activeFilters.vipPlan) {
                     params.append('plan', this.activeFilters.vipPlan);
                 }
 
-                if (this.activeFilters.status) {
-                    this.activeFilters.status.forEach(key => {
-                        params.append(key, '1');
-                    });
-                }
+                // Add Status Filters
+                ['activate', 'api_bind', 'credit', 'bot_run'].forEach(key => {
+                    if (this.activeFilters[key] !== undefined && this.activeFilters[key] !== null && this.activeFilters[key] !== '') {
+                        params.append(key, this.activeFilters[key]);
+                    }
+                });
+
+                // Add Upline Filters
+                if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
+                if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
 
                 if (this.drilldownSearchQuery) {
                     params.append('search', this.drilldownSearchQuery);
                 }
+
+                // Sorting
+                params.append('sort_by', this.drilldownSort.sortBy || '');
+                params.append('sort_dir', this.drilldownSort.sortDir || 'desc');
 
                 const url = `/pipeline/drilldown?${params.toString()}`;
                 
@@ -342,16 +441,18 @@ export default {
                     this.drilldownMessage = response.message || '';
                     this.drilldownData = (data.users || []).map((item, index) => ({
                         id: index + 1,
-                        ...item
+                        ...item,
+                        upper_upline: item.upper_upline || '-',
+                        upline: item.upline || '-'
                     }));
-                    if (data.summary || response.data.snapshot) {
-                         const snap = data.summary || response.data.snapshot;
+                    if (data.summary  ) {
+                         const snap = data.summary
                          this.drilldownSummary = {
-                             total: snap.total || snap.total_eligible_user || 0,
-                             activate: snap.activate || 0,
-                             api_bind: snap.api_bind || 0,
-                             credit: snap.credit || 0,
-                             bot_run: snap.bot_run || 0
+                             total: snap.total_users||0,
+                             activate: snap.activate_count || 0,
+                             api_bind: snap.api_bind_count || 0,
+                             credit: snap.credit_count || 0,
+                             bot_run: snap.bot_run_count || 0
                          };
                     } else {
                         this.drilldownSummary = { total: 0, activate: 0, api_bind: 0, credit: 0, bot_run: 0 };
@@ -421,6 +522,68 @@ export default {
             if (val > 0.8) return 'text-[#39DEBB]'; // Green
             if (val >= 0.6) return 'text-[#F9B33F]'; // Orange
             return 'text-[#F24E6C]'; // Red
+        },
+        async handleExport() {
+            if (!this.selectedLeader) return;
+
+            const params = new URLSearchParams({
+                leader: this.selectedLeader,
+                search: this.drilldownSearchQuery || ''
+            });
+
+            // VIP Plan
+            if (this.activeFilters.vipPlan) {
+                params.append('plan', this.activeFilters.vipPlan);
+            }
+
+            // Timeframe (join_month & join_year from filters.month)
+            if (this.filters.month) {
+                const [year, month] = this.filters.month.split('-');
+                params.append('join_month', parseInt(month).toString());
+                params.append('join_year', year);
+            }
+
+            // Status Filters
+            ['activate', 'api_bind', 'credit', 'bot_run'].forEach(key => {
+                if (this.activeFilters[key] !== undefined && this.activeFilters[key] !== null && this.activeFilters[key] !== '') {
+                    params.append(key, this.activeFilters[key]);
+                }
+            });
+
+            // Upline Filters
+            if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
+            if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
+
+            const token = localStorage.getItem('moon_office_token');
+            const url = `${BASE_URL}/pipeline/drilldown/export?${params.toString()}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Export failed');
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+
+                // Filename: Drilldown_Pipeline_{Leader}_{Month}.csv
+                const filename = `Drilldown_Pipeline_${this.selectedLeader}_${this.filters.month || 'all'}.csv`;
+                link.setAttribute('download', filename);
+
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Gagal mendownload data export. Silakan coba lagi.');
+            }
         }
     },
     template: `
@@ -451,8 +614,8 @@ export default {
                             <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
                             <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                                 <option value="All">All</option>
-                                <option value="6 ⭐">6 ⭐</option>
-                                <option value="Main Leader">Main Leader</option>
+                                <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                                   <!-- <option value="Main Leader">Main Leader</option> -->
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -476,61 +639,55 @@ export default {
                         </div>
                     </div>
 
-                    <!-- Search -->
-                    <div class="relative bg-white border border-gray-100 rounded-full shadow-sm flex items-center px-4 py-2 w-64 ml-4">
-                        <input type="text" v-model="searchQuery" placeholder="Search" class="appearance-none bg-transparent focus:outline-none w-full text-gray-700 text-sm" />
-                        <svg class="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
+                  
                 </div>
 
                 <!-- Average Conversion section -->
                 <div class="mb-8">
-                    <div class="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wider">Average Conversion <span class="text-gray-400 font-normal normal-case">(by VIP plan)</span></div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap py-2 overflow-x-auto custom-scrollbar">
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Join</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.join.pct }}%</div>
+                    <div class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Average Conversion <span class="text-gray-400 font-normal normal-case">(by VIP plan)</span></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap py-1 overflow-x-auto custom-scrollbar">
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Join</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.join.pct }}%</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Activate</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.activate.pct }}%</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Activate</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.activate.pct }}%</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">API Bind</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.api_bind.pct }}%</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">API Bind</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.api_bind.pct }}%</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Credit</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.credit.pct }}%</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Credit</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.credit.pct }}%</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Bot Run</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.bot_run.pct }}%</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Bot Run</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.conversion.bot_run.pct }}%</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Average Lead Time section -->
                 <div class="mb-8">
-                    <div class="text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-wider">Average Lead Time <span class="text-gray-400 font-normal normal-case">(by VIP plan)</span></div>
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap py-2 overflow-x-auto custom-scrollbar">
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Activate</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.activate }} days</div>
+                    <div class="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Average Lead Time <span class="text-gray-400 font-normal normal-case">(by VIP plan)</span></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap py-1 overflow-x-auto custom-scrollbar">
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Activate</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.activate }} days</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">API Bind</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.api_bind }} days</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">API Bind</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.api_bind }} days</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Credit</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.credit }} days</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Credit</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.credit }} days</div>
                         </div>
-                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-6  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                            <div class="text-[10px] text-gray-500 mb-3 font-medium uppercase tracking-wide whitespace-nowrap">Bot Run</div>
-                            <div class="text-base lg:text-lg font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.bot_run }} days</div>
+                        <div class="flex-1 min-w-[120px] flex flex-col items-center justify-center p-4  text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                            <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">Bot Run</div>
+                            <div class="text-sm lg:text-base font-bold text-gray-900 whitespace-nowrap">{{ summary.lead_time.bot_run }} days</div>
                         </div>
                     </div>
                 </div>
@@ -540,7 +697,7 @@ export default {
                     <!-- Data Table Toolbar (Search Only) -->
                     <div class="flex flex-wrap md:flex-nowrap justify-start items-center mb-6">
                         <div class="w-full md:w-64 h-11">
-                            <SearchInput v-model="searchQuery" placeholder="Search" class="h-full border-gray-200" />
+                            <SearchInput v-model="searchQuery" placeholder="Leaders" class="h-full border-gray-200" />
                         </div>
                     </div>
 
@@ -566,7 +723,10 @@ export default {
                             :total-pages="pagination.totalPages"
                             :current-page="pagination.page"
                             :default-rows-per-page="pagination.limit"
+                            :sort-by="sort.sortBy"
+                            :sort-order="sort.sortDir"
                             @page-change="handlePageChange"
+                            @sort-change="handleSortChange"
                         >
                             <!-- Hide ACTION column -->
                             <template #action-header><th></th></template>
@@ -673,7 +833,7 @@ export default {
                             </div>
                         </div>
                          <!-- Download Button -->
-                         <button class="text-gray-400 hover:text-gray-600">
+                         <button @click="handleExport" class="text-gray-400 hover:text-gray-600" title="Export Drilldown">
                             <img src="./assets/images/icons/download.svg" alt="Download" class="h-5 w-5">
                         </button>
                     </div>
@@ -702,31 +862,43 @@ export default {
                             :total-pages="drilldownPagination.totalPages"
                             :current-page="drilldownPagination.page"
                             :default-rows-per-page="drilldownPagination.limit"
+                            :sort-by="drilldownSort.sortBy"
+                            :sort-order="drilldownSort.sortDir"
                             @page-change="handleDrilldownPageChange"
+                            @sort-change="handleDrilldownSortChange"
                         >
                             <!-- Hide ACTION column -->
                             <template #action-header><th></th></template>
                             <template #row-actions></template>
                             
                             <template #table-prepend>
-                                <tr class="bg-white border-b border-gray-200">
-                                    <td colspan="5" class="py-3 px-4 text-center font-bold text-gray-800 border-r border-dotted border-gray-300">
-                                        <div class="flex justify-start px-8">
-                                            <span>{{ drilldownSummary.total }}/{{ drilldownSummary.total }}</span>
-                                        </div>
+                                <tr class="bg-gray-50/50 border-b border-gray-200 font-bold text-gray-900 text-xs">
+                                    <!-- ID -->
+                                    <td class="px-3 md:px-4 py-2.5"></td>
+                                    <!-- Username -->
+                                    <td class="sticky left-0 bg-white z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words py-2.5">
+                                        {{ formatNumber(drilldownSummary.total) }} User
                                     </td>
-                                    <td class="py-3 px-4 text-center font-bold text-gray-800">
-                                        {{ drilldownSummary.activate }}/{{ drilldownSummary.total }}
-                                    </td>
-                                    <td class="py-3 px-4 text-center font-bold text-gray-800">
-                                        {{ drilldownSummary.api_bind }}/{{ drilldownSummary.total }}
-                                    </td>
-                                    <td class="py-3 px-4 text-center font-bold text-gray-800">
-                                        {{ drilldownSummary.credit }}/{{ drilldownSummary.total }}
-                                    </td>
-                                    <td class="py-3 px-4 text-center font-bold text-gray-800">
-                                        {{ drilldownSummary.bot_run }}/{{ drilldownSummary.total }}
-                                    </td>
+                                    <!-- Paket -->
+                                    <td class="px-4 py-2.5 w-[100px] min-w-[100px]"></td>
+                                    <!-- TGL Join -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px]"></td>
+                                    <!-- Activate -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.activate) }} User</td>
+                                    <!-- API Bind -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.api_bind) }} User</td>
+                                    <!-- Credit -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.credit) }} User</td>
+                                    <!-- Bot Run -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px] text-center">{{ formatNumber(drilldownSummary.bot_run) }} User</td>
+                                    <!-- Hari Dari Join -->
+                                    <td class="px-4 py-2.5 w-[120px] min-w-[120px]"></td>
+                                    <!-- Upline 6 -->
+                                    <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
+                                    <!-- Upline 3 -->
+                                    <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
+                                    <!-- No HP -->
+                                    <td class="px-4 py-2.5 w-[150px] min-w-[150px]"></td>
                                 </tr>
                             </template>
 
@@ -814,13 +986,13 @@ export default {
                                 </div>
                             </template>
 
-                            <template #cell-upline="{ value }">
+                            <template #cell-upper_upline="{ value }">
                                 <div class="flex justify-center">
                                     <span class="text-gray-700">{{ value !== null && value !== undefined ? value : '-' }}</span>
                                 </div>
                             </template>
 
-                            <template #cell-sponsor="{ value }">
+                            <template #cell-upline="{ value }">
                                 <div class="flex justify-center">
                                     <span class="text-gray-700">{{ value !== null && value !== undefined ? value : '-' }}</span>
                                 </div>

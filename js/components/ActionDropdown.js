@@ -130,7 +130,7 @@ export default {
                         :style="menuStyle"
                     >
                         <div class="px-3 py-1 mb-1 border-b border-gray-50">
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Options</span>
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Options</span>
                         </div>
                         <button 
                             v-for="action in actions"

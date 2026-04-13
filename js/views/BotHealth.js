@@ -1,10 +1,10 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
 import SearchInput from '../components/SearchInput.js';
-import DataTable from '../components/DataTable.js?v=24';
+import DataTable from '../components/DataTable.js?v=32';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatNumber } from '../utils/formatters.js'; 
-import { fetchApi } from '../utils/api.js?v=4';
+import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 export default {
     name: 'BotHealth',
     components: {
@@ -19,7 +19,16 @@ export default {
             searchQuery: '',
             filters: {
                 date: '', // Stores YYYY-MM-DD
+                leader: 'All',
                 vipPlan: 'All'
+            },
+            sort: {
+                sortBy: '',
+                sortDir: 'desc'
+            },
+            drilldownSort: {
+                sortBy: '',
+                sortDir: 'desc'
             },
             loading: false,
             error: null,
@@ -50,10 +59,10 @@ export default {
                 { key: 'vip_level', label: 'PAKET', sortable: true, align: 'center' },
                 { key: 'floating', label: 'INSUFFICIENT FUNDS', sortable: true, align: 'center' },
                 { key: 'days_floating_streak', label: 'AVG DAYS OFF (FLOATING)', sortable: true, align: 'center' },
-                { key: 'insufficient_credit', label: 'CREDIT', sortable: true, align: 'center' },
+                { key: 'insufficient_credit', label: 'CREDIT ≤ 3', sortable: true, align: 'center' },
                 { key: 'days_credit_streak', label: 'AVG DAYS OFF (CREDIT)', sortable: true, align: 'center' },
-                { key: 'upline', label: 'UPLINE', sortable: true, align: 'center' },
-                { key: 'sponsor', label: 'SPONSOR', sortable: true, align: 'center' },
+                { key: 'upper_upline', label: 'UPLINE RANK 6', sortable: true, align: 'center' },
+                { key: 'upline', label: 'UPLINE RANK 3', sortable: true, align: 'center' },
                 { key: 'step_count', label: 'MM', sortable: true, align: 'center' },
                 { key: 'max_coin', label: 'MAX COIN', sortable: true, align: 'center' },
                 { key: 'avg_buy_amount', label: 'AVG BUY AMOUNT', sortable: true, align: 'center' },
@@ -91,19 +100,21 @@ export default {
                 // Drilldown view filters
                 return [
                     {
-                        type: 'checkbox-group',
-                        label: 'Funds',
+                        type: 'radio-group',
+                        label: 'Funds Status',
                         key: 'funds',
                         options: [
+                            { label: 'All', value: '' },
                             { label: 'Sufficient', value: 'Sufficient' },
                             { label: 'Insufficient', value: 'Insufficient' }
                         ]
                     },
                     {
-                        type: 'checkbox-group',
-                        label: 'Credit',
+                        type: 'radio-group',
+                        label: 'Credit Status',
                         key: 'creditStatus',
                         options: [
+                            { label: 'All', value: '' },
                             { label: 'Credit Available', value: 'Credit Available' },
                             { label: 'No Credit Available', value: 'No Credit Available' }
                         ]
@@ -111,13 +122,13 @@ export default {
                     {
                         type: 'text',
                         label: 'Upline rank 6',
-                        key: 'uplineRank6',
+                        key: 'upper_upline',
                         placeholder: 'Username'
                     },
                     {
                         type: 'text',
                         label: 'Upline rank 3',
-                        key: 'uplineRank3',
+                        key: 'upline',
                         placeholder: 'Username'
                     }
                 ];
@@ -156,12 +167,12 @@ export default {
         },
         summaryStats() {
             return [
-                { label: 'Floating', value: formatNumber(this.summary.insufficient_funds), suffix: ` (${this.summary.floating_pct}%)` },
-                { label: 'Avg days OFF (floating)', value: formatNumber(this.summary.avg_days_off_floating) },
-                { label: 'Credit NIL', value: formatNumber(this.summary.credit_nil), suffix: ` (${this.summary.credit_nil_pct}%)` },
-                { label: 'Avg days OFF (credit)', value: formatNumber(this.summary.avg_days_off_credit) },
-                { label: 'Total Eligible User', value: formatNumber(this.summary.total_eligible_user) },
-                { label: 'Health Index', value: this.summary.health_index }
+                { label: 'Floating', value: formatNumber(this.summary.insufficient_funds??0), suffix: ` (${this.summary.floating_pct??0}%)` },
+                { label: 'Avg days OFF (floating)', value: formatNumber(this.summary.avg_days_off_floating??0) },
+                { label: 'Credit NIL', value: formatNumber(this.summary.credit_nil??0), suffix: ` (${this.summary.credit_nil_pct??0}%)` },
+                { label: 'Avg days OFF (credit)', value: formatNumber(this.summary.avg_days_off_credit??0) },
+                { label: 'Total Eligible User', value: formatNumber(this.summary.total_eligible_user??0) },
+                { label: 'Health Index', value: this.summary.health_index??0 }
             ];
         }
     },
@@ -181,6 +192,18 @@ export default {
             this.drilldownPagination.limit = rowsPerPage;
             this.fetchDrilldown(this.selectedLeader);
         },
+        handleDrilldownSortChange({ key, order }) {
+            this.drilldownSort.sortBy = key;
+            this.drilldownSort.sortDir = order;
+            this.drilldownPagination.page = 1;
+            this.fetchDrilldown(this.selectedLeader);
+        },
+        handleSortChange({ key, order }) {
+            this.sort.sortBy = key;
+            this.sort.sortDir = order;
+            this.pagination.page = 1;
+            this.fetchBotHealth();
+        },
         async fetchSummary() {
             try {
                 let url = '/bot-health/summary';
@@ -195,15 +218,35 @@ export default {
                 if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
                     params.append('plan', this.filters.vipPlan);
                 }
+
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    params.append('rank', this.filters.leader);
+                }
+
+                // Synchronize with Drilldown context
+                if (this.selectedLeader) {
+                    params.append('leader', this.selectedLeader.leader);
+                    
+                    if (this.activeFilters.funds) {
+                        if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
+                        else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
+                    }
+                    if (this.activeFilters.creditStatus) {
+                        if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
+                        else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
+                    }
+                    if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
+                    if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
+                }
                 
                 if (params.toString()) {
                     url += `?${params.toString()}`;
                 }
 
                 const response = await fetchApi(url);
-                if (response.success && response.data && response.data.snapshot) {
+                if (response.success && response.data && response.data.summary) {
                     const data = response.data;
-                    const snapshot = data.snapshot;
+                    const snapshot = data.summary;
                     
                     // Map API fields to UI summary fields
                     this.summary = {
@@ -237,24 +280,37 @@ export default {
                     limit: this.pagination.limit
                 });
                 
-                if (this.searchQuery) params.append('search', this.searchQuery);
+                if (this.searchQuery) params.append('leader', this.searchQuery);
                 
-                // Add Toolbar Filters for Leaders
-                if (this.activeFilters.startDate) params.append('start_date', this.activeFilters.startDate);
-                if (this.activeFilters.endDate) params.append('end_date', this.activeFilters.endDate);
+                // Use global filters for date and rank
+                if (this.filters.date) params.append('date', this.filters.date);
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    params.append('rank', this.filters.leader);
+                }
+
+                // Add Toolbar Filters
                 if (this.activeFilters.vipPlan && this.activeFilters.vipPlan !== '') {
                     params.append('plan', this.activeFilters.vipPlan);
                 }
 
+                // Sorting
+                params.append('sort_by', this.sort.sortBy || '');
+                params.append('sort_dir', this.sort.sortDir || 'desc');
+
                 const response = await fetchApi(`/bot-health/leaders?${params.toString()}`);
-                if (response.success) {
+                if (response.success && response.data) {
                     const data = response.data;
                     this.botHealthData = data.summaries || [];
+
+                    if (data.stat_date) {
+                        this.lastUpdated = data.stat_date;
+                    }
 
                     if (data.pagination) {
                         this.pagination.totalItems = data.pagination.total || 0;
                         this.pagination.totalPages = data.pagination.total_pages || 0;
                         this.pagination.page = data.pagination.current_page || 1;
+                        this.pagination.limit = data.pagination.limit || 25;
                     }
                 }
             } catch (err) {
@@ -295,17 +351,27 @@ export default {
 
                 if (this.searchQuery) params.append('search', this.searchQuery);
 
+                // Add Upline Filters for Drilldown (Postman mapping)
+                if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
+                if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
+
+                // Sorting for Drilldown
+                params.append('sort_by', this.drilldownSort.sortBy || '');
+                params.append('sort_dir', this.drilldownSort.sortDir || 'desc');
+
                 // Add Date for Drilldown
                 if (this.filters.date) {
                     params.append('date', this.filters.date);
                 }
 
-                // Add Toolbar Filters for Drilldown
-                if (this.activeFilters.funds && this.activeFilters.funds.includes('Insufficient')) {
-                    params.append('floating', '1');
+                // Add Toolbar Flags for Drilldown (Postman mapping: 1=insufficient/no credit, 0=sufficient/credit available)
+                if (this.activeFilters.funds) {
+                    if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
+                    else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
                 }
-                if (this.activeFilters.creditStatus && this.activeFilters.creditStatus.includes('No Credit Available')) {
-                    params.append('credit', '1');
+                if (this.activeFilters.creditStatus) {
+                    if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
+                    else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
                 }
 
                 let url = `/bot-health/drilldown?${params.toString()}`;
@@ -314,8 +380,11 @@ export default {
                     const data = response.data;
                     this.leaderUsers = (data.users || []).map((item, index) => ({
                         id: index + 1,
-                        ...item
+                        ...item,
+                        upper_upline: item.upper_upline || '-',
+                        upline: item.upline || '-'
                     }));
+                        
                     if (data.pagination) {
                         this.drilldownPagination.totalItems = data.pagination.total || 0;
                         this.drilldownPagination.totalPages = data.pagination.total_pages || 0;
@@ -350,12 +419,69 @@ export default {
         },
         applyFilters() {
             this.isFilterOpen = false;
+            // Always refresh summary when filters change
+            this.fetchSummary();
             if (this.selectedLeader) {
                 this.drilldownPagination.page = 1;
                 this.fetchDrilldown(this.selectedLeader);
             } else {
                 this.pagination.page = 1;
                 this.fetchBotHealth();
+            }
+        },
+        async handleExport() {
+            if (!this.selectedLeader) return;
+
+            const params = new URLSearchParams({
+                leader: this.selectedLeader.leader,
+                date: this.filters.date || '',
+                search: this.searchQuery || ''
+            });
+
+            // Mapping activeFilters to Postman parameters
+            if (this.activeFilters.funds) {
+                if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
+                else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
+            }
+            if (this.activeFilters.creditStatus) {
+                if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
+                else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
+            }
+            if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
+            if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
+
+            const token = localStorage.getItem('moon_office_token');
+            // Using the requested staging URL format from BASE_URL
+            const url = `${BASE_URL}/bot-health/drilldown/export?${params.toString()}`;
+            
+            try {
+                // Using fetch with Authorization: Bearer {token} as requested in user's curl
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Export failed');
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                
+                // Construct filename: Drilldown_BotHealth_{Leader}_{Date}.csv
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `Drilldown_BotHealth_${this.selectedLeader.leader}_${this.filters.date || timestamp}.csv`;
+                link.setAttribute('download', filename);
+                
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Gagal mendownload data export. Silakan coba lagi.');
             }
         }
     },
@@ -401,23 +527,37 @@ export default {
                 <div class="relative">
                     <DatePicker v-model="filters.date" :config="datePickerConfig">
                         <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
-                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Timeframe:</span>
-                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.date ? formatDate(filters.date) : 'Today' }}</span>
+                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Date:</span>
+                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.date || 'Select Date' }}</span>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
                         </div>
                     </DatePicker>
                 </div>
+
+                <!-- Leader Rank Filter (Main View only) -->
+                 <div v-if="!selectedLeader" class="relative">
+                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Rank :</span>
+                        <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                            <option value="All">All</option>
+                            <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- View Content -->
-            <div v-if="!selectedLeader" class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap mb-8 py-2 overflow-x-auto custom-scrollbar">
+            <div v-if="!selectedLeader" class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap mb-6 py-1 overflow-x-auto custom-scrollbar">
                 <!-- Stats/Metrics Cards -->
                 <div v-for="(stat, index) in summaryStats" :key="index" 
-                    class="flex-1 min-w-[150px] flex flex-col items-center justify-center p-6 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
-                    <div class="text-[10px] text-gray-500 mb-2 font-medium uppercase tracking-wide whitespace-nowrap">{{ stat.label }}</div>
-                    <div :class="['text-base lg:text-lg font-bold whitespace-nowrap', stat.label === 'Health Index' ? getHealthIndexTextClass(stat.value) : 'text-gray-900']">
+                    class="flex-1 min-w-[150px] flex flex-col items-center justify-center p-4 text-center border-b md:border-b-0 md:border-r border-gray-100 last:border-r-0 last:border-b-0">
+                    <div class="text-[10px] text-gray-500 mb-1 font-medium uppercase tracking-wide whitespace-nowrap">{{ stat.label }}</div>
+                    <div :class="['text-sm lg:text-base font-bold whitespace-nowrap', stat.label === 'Health Index' ? getHealthIndexTextClass(stat.value) : 'text-gray-900']">
                         {{ stat.value }}{{ stat.suffix || '' }}
                     </div>
                 </div>
@@ -444,8 +584,8 @@ export default {
                 <!-- Toolbar -->
                 <div class="flex flex-wrap md:flex-nowrap justify-between items-center mb-6 gap-4">
                     <div class="flex flex-wrap items-center gap-4 w-full md:w-auto"> 
-                        <!-- Filter Button & Dropdown -->
-                        <div class="relative">
+                        <!-- Filter Button & Dropdown (Drilldown only) -->
+                        <div v-if="selectedLeader" class="relative">
                             <button 
                                 @click="toggleFilter"
                                 class="filter-trigger h-11 w-11 flex items-center justify-center border border-gray-200 bg-white rounded-lg hover:bg-gray-50 text-gray-600 focus:outline-none relative z-20"
@@ -462,14 +602,14 @@ export default {
                             ></filter-dropdown>
                         </div>
 
-                        <!-- Search Input -->
+                        <!-- Search Input (Main/Drilldown) -->
                         <div class="w-full md:w-64 h-11">
-                            <SearchInput v-model="searchQuery" placeholder="Search" class="h-full border-gray-200" />
+                            <SearchInput v-model="searchQuery" placeholder="Search Leader" class="h-full border-gray-200" />
                         </div>
                     </div>
 
                     <!-- Download Button -->
-                    <button class="text-gray-400 hover:text-gray-600">
+                    <button v-if="selectedLeader" @click="handleExport" class="text-gray-400 hover:text-gray-600" title="Export Drilldown">
                         <img src="./assets/images/icons/download.svg" alt="Download" class="h-6 w-6">
                     </button>
                 </div>
@@ -509,7 +649,10 @@ export default {
                     :total-pages="pagination.totalPages"
                     :current-page="pagination.page"
                     :default-rows-per-page="pagination.limit"
+                    :sort-by="sort.sortBy"
+                    :sort-order="sort.sortDir"
                     @page-change="handlePageChange"
+                    @sort-change="handleSortChange"
                 >
                     <!-- Custom leader cell (LEADER) -->
                     <template #cell-leader="{ value, row }">
@@ -522,16 +665,22 @@ export default {
                     </template>
 
                     <!-- Custom insufficient_funds cell -->
-                    <template #cell-insufficient_funds="{ value }">
-                        <div class="flex justify-center">
-                            <span class="text-gray-500">{{ formatNumber(value) }}</span>
+                    <template #cell-insufficient_funds="{ value, row }">
+                        <div class="flex flex-col items-center">
+                            <span class="text-gray-900 font-medium">{{ formatNumber(value) }}</span>
+                            <span v-if="row.insufficient_funds_pct !== undefined" class="text-xs text-gray-400">
+                                ({{ row.insufficient_funds_pct }}%)
+                            </span>
                         </div>
                     </template>
 
                     <!-- Custom credit_nil cell -->
-                     <template #cell-credit_nil="{ value }">
-                        <div class="flex justify-center">
-                            <span class="text-gray-500">{{ formatNumber(value) }}</span>
+                     <template #cell-credit_nil="{ value, row }">
+                        <div class="flex flex-col items-center">
+                            <span class="text-gray-900 font-medium">{{ formatNumber(value) }}</span>
+                            <span v-if="row.credit_nil_pct !== undefined" class="text-xs text-gray-400">
+                                ({{ row.credit_nil_pct }}%)
+                            </span>
                         </div>
                     </template>
 
@@ -576,7 +725,10 @@ export default {
                     :total-pages="drilldownPagination.totalPages"
                     :current-page="drilldownPagination.page"
                     :default-rows-per-page="drilldownPagination.limit"
+                    :sort-by="drilldownSort.sortBy"
+                    :sort-order="drilldownSort.sortDir"
                     @page-change="handleDrilldownPageChange"
+                    @sort-change="handleDrilldownSortChange"
                 >
                     <!-- Custom leader cell (USERNAME) -->
                     <template #cell-username="{ value }">
@@ -602,8 +754,8 @@ export default {
 
                     <template #cell-floating="{ value }">
                         <div class="flex justify-center">
-                            <span v-if="value && value != '0' && value != 0" class="text-red-500 font-bold text-lg">❌</span>
-                            <span v-else class="text-green-500 font-bold text-lg">✅</span>
+                            <span v-if="value == 0 || value == '0'" class="text-red-500 font-bold text-sm">YES</span>
+                            <span v-else class="text-green-500 font-bold text-sm">NO</span>
                         </div>
                     </template>
 
@@ -615,8 +767,8 @@ export default {
 
                     <template #cell-insufficient_credit="{ value }">
                         <div class="flex justify-center">
-                            <span v-if="value && value != '0' && value != 0" class="text-red-500 font-bold text-lg">❌</span>
-                            <span v-else class="text-green-500 font-bold text-lg">✅</span>
+                            <span v-if="value == 0 || value == '0'" class="text-red-500 font-bold text-sm">YES</span>
+                            <span v-else class="text-green-500 font-bold text-sm">NO</span>
                         </div>
                     </template>
 
@@ -628,7 +780,7 @@ export default {
 
                     <template #cell-step_count="{ value }">
                         <div class="flex justify-center">
-                            <span class="text-gray-700">{{ formatNumber(value) }}</span>
+                            <span class="text-gray-700">{{ formatNumber(value||0) }}</span>
                         </div>
                     </template>
 
@@ -638,13 +790,13 @@ export default {
                         </div>
                     </template>
 
-                    <template #cell-upline="{ value }">
+                    <template #cell-upper_upline="{ value }">
                         <div class="flex justify-center">
                             <span class="text-gray-700">{{ value || '-' }}</span>
                         </div>
                     </template>
 
-                    <template #cell-sponsor="{ value }">
+                    <template #cell-upline="{ value }">
                         <div class="flex justify-center">
                             <span class="text-gray-700">{{ value || '-' }}</span>
                         </div>

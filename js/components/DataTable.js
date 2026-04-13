@@ -41,18 +41,33 @@ export default {
         currentPage: {
             type: Number,
             default: 1
+        },
+        // Server-side sorting props
+        sortBy: {
+            type: String,
+            default: ''
+        },
+        sortOrder: {
+            type: String,
+            default: 'asc'
         }
     },
-    emits: ['row-action', 'page-change', 'update:currentPage', 'update:rowsPerPage'],
+    emits: ['row-action', 'page-change', 'update:currentPage', 'update:rowsPerPage', 'sort-change'],
     data() {
         return {
             internalRowsPerPage: this.defaultRowsPerPage,
             internalCurrentPage: 1,
-            sortKey: null,
-            sortOrder: 'asc'
+            internalSortKey: this.sortBy,
+            internalSortOrder: this.sortOrder
         }
     },
     computed: {
+        sortKey() {
+            return this.serverSide ? this.sortBy : this.internalSortKey;
+        },
+        activeSortOrder() {
+            return this.serverSide ? this.sortOrder : this.internalSortOrder;
+        },
         activeRowsPerPage() {
             return this.internalRowsPerPage;
         },
@@ -76,8 +91,8 @@ export default {
                 if (typeof aVal === 'string') aVal = aVal.toLowerCase();
                 if (typeof bVal === 'string') bVal = bVal.toLowerCase();
 
-                if (aVal < bVal) return this.sortOrder === 'asc' ? -1 : 1;
-                if (aVal > bVal) return this.sortOrder === 'asc' ? 1 : -1;
+                if (aVal < bVal) return this.activeSortOrder === 'asc' ? -1 : 1;
+                if (aVal > bVal) return this.activeSortOrder === 'asc' ? 1 : -1;
                 return 0;
             });
         },
@@ -98,11 +113,18 @@ export default {
         sort(column) {
             if (!column.sortable) return;
 
-            if (this.sortKey === column.key) {
-                this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
+            let newKey = column.key;
+            let newOrder = 'asc';
+
+            if (this.sortKey === newKey) {
+                newOrder = this.activeSortOrder === 'asc' ? 'desc' : 'asc';
+            }
+
+            if (this.serverSide) {
+                this.$emit('sort-change', { key: newKey, order: newOrder });
             } else {
-                this.sortKey = column.key;
-                this.sortOrder = 'asc';
+                this.internalSortKey = newKey;
+                this.internalSortOrder = newOrder;
             }
         },
         prevPage() {
@@ -148,12 +170,12 @@ export default {
                 <table class="w-full text-left text-gray-600">
                     <thead class="sticky top-0 z-20 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                         <tr class="border-b border-gray-100">
-                            <th :class="['px-3 md:px-6 py-4 font-semibold text-gray-500 text-sm w-10 md:w-16 min-w-[40px]', stickyIndex ? 'sticky left-0 bg-white z-30' : '']">#</th>
+                            <th :class="['px-3 md:px-4 py-3 font-semibold text-gray-500 text-xs w-10 md:w-16 min-w-[40px]', stickyIndex ? 'sticky left-0 bg-white z-30' : '']">#</th>
                             <th 
                                 v-for="col in columns" 
                                 :key="col.key"
                                 :class="[
-                                    'px-3 md:px-6 py-4 font-semibold text-gray-500 text-sm bg-white',
+                                    'px-3 md:px-4 py-3 font-semibold text-gray-500 text-xs bg-white',
                                     col.align === 'center' ? 'text-center' : '',
                                     col.width ? col.width : '',
                                     col.thClass ? col.thClass : '',
@@ -163,33 +185,44 @@ export default {
                             >
                                 <div 
                                     :class="[
-                                        'flex items-center gap-1',
-                                        col.sortable ? 'cursor-pointer hover:text-gray-700' : '',
-                                        col.align === 'center' ? 'justify-center' : ''
+                                        'flex items-center gap-1 group',
+                                        col.sortable ? 'cursor-pointer' : '',
+                                        col.align === 'center' ? 'justify-center' : '',
+                                        sortKey === col.key ? 'text-[#39DEBB]' : 'hover:text-gray-700'
                                     ]"
                                     @click="sort(col)"
                                 >
                                     {{ col.label }}
-                                    <svg v-if="col.sortable" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                                    </svg>
+                                    <div v-if="col.sortable" class="flex flex-col">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 -mb-1"
+                                             :class="sortKey === col.key && activeSortOrder === 'asc' ? 'text-[#39DEBB]' : 'text-gray-300 group-hover:text-gray-400'" 
+                                             fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 5L15 10H5L10 5Z" />
+                                        </svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 -mt-1"
+                                             :class="sortKey === col.key && activeSortOrder === 'desc' ? 'text-[#39DEBB]' : 'text-gray-300 group-hover:text-gray-400'" 
+                                             fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 15L5 10H15L10 15Z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </th>
                             <template v-if="showActions">
                                 <slot name="action-header">
-                                    <th class="px-6 py-4 font-semibold text-gray-500 text-sm text-center w-24">ACTION</th>
+                                    <th class="px-4 py-3 font-semibold text-gray-500 text-xs text-center w-24">ACTION</th>
                                 </slot>
                             </template>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
+                        <slot name="table-prepend"></slot>
                         <tr v-for="(row, index) in paginatedData" :key="row.id || index" class="hover:bg-gray-50 group">
-                            <td :class="['px-3 md:px-6 py-4 text-gray-500', stickyIndex ? 'sticky left-0 bg-white group-hover:bg-gray-50 z-10' : '']">{{ getRowIndex(index) }}</td>
+                            <td :class="['px-3 md:px-4 py-2.5 text-gray-500 text-xs', stickyIndex ? 'sticky left-0 bg-white group-hover:bg-gray-50 z-10' : '']">{{ getRowIndex(index) }}</td>
                             <td 
                                 v-for="col in columns" 
                                 :key="col.key"
                                 :class="[
-                                    'px-6 py-4',
+                                    'px-4 py-2.5 text-xs',
                                     col.align === 'center' ? 'text-center' : '',
                                     col.class ? col.class : '',
                                     col.colWidthClass ? col.colWidthClass + ' break-all' : ''
@@ -200,7 +233,7 @@ export default {
                                     {{ row[col.key] }}
                                 </slot>
                             </td>
-                            <td v-if="showActions" class="px-6 py-4 text-center">
+                            <td v-if="showActions" class="px-4 py-2.5 text-center text-xs">
                                 <slot name="row-actions" :row="row" :index="index"></slot>
                             </td>
                         </tr>
@@ -214,14 +247,14 @@ export default {
             </div>
 
             <!-- Pagination -->
-            <div class="flex justify-between items-center px-6 py-4 border-t border-gray-100">
-                <div class="text-sm text-gray-500">
+            <div class="flex justify-between items-center px-6 py-2 border-t border-gray-100">
+                <div class="text-[10px] md:text-xs text-gray-500">
                     {{ showingFrom }}-{{ showingTo }} of {{ activeTotalItems }}
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm text-gray-500">Rows per page:</span>
-                        <select v-model="internalRowsPerPage" class="bg-transparent text-sm text-gray-700 focus:outline-none cursor-pointer">
+                        <span class="text-[10px] md:text-xs text-gray-500">Rows per page:</span>
+                        <select v-model="internalRowsPerPage" class="bg-transparent text-[10px] md:text-xs text-gray-700 focus:outline-none cursor-pointer">
                             <option v-for="opt in rowsPerPageOptions" :key="opt" :value="opt">{{ opt }}</option>
                         </select>
                     </div>
@@ -231,17 +264,17 @@ export default {
                             :disabled="activeCurrentPage <= 1"
                             class="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                             </svg>
                         </button>
-                        <span class="text-sm text-gray-700">{{ activeCurrentPage }}/{{ activeTotalPages }}</span>
+                        <span class="text-[10px] md:text-xs text-gray-700">{{ activeCurrentPage }}/{{ activeTotalPages }}</span>
                         <button 
                             @click="nextPage"
                             :disabled="activeCurrentPage >= activeTotalPages"
                             class="p-1 rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                             </svg>
                         </button>

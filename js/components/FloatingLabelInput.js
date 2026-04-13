@@ -47,7 +47,7 @@ export default {
                 class="absolute left-4 text-gray-500 transition-all duration-200 pointer-events-none truncate max-w-[90%]"
                 :class="[
                     isActive 
-                        ? 'top-2 text-[13px] font-medium text-gray-700' 
+                        ? 'top-2 text-xs font-medium text-gray-700' 
                         : 'top-4 text-base text-gray-400'
                 ]"
             >

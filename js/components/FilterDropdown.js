@@ -183,27 +183,7 @@ export default {
                         >
                     </div>
 
-                    <!-- Radio Group (Custom for Credit example) -->
-                     <div v-if="field.type === 'custom-credit'" class="flex flex-wrap gap-x-12 gap-y-3">
-                        <label class="flex items-center space-x-2 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                value=">3$" 
-                                v-model="localFilters[field.key]"
-                                class="w-5 h-5 text-teal-500 rounded border-gray-300 focus:ring-teal-500"
-                            >
-                            <span class="text-gray-600 text-sm">>3$</span>
-                        </label>
-                         <label class="flex items-center space-x-2 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                value="<=3$" 
-                                v-model="localFilters[field.key]"
-                                class="w-5 h-5 rounded border-gray-300 focus:ring-teal-500"
-                            >
-                            <span class="text-gray-600 text-sm">&le;3$</span>
-                        </label>
-                    </div>
+
 
                      <!-- Date/Days Range -->
                     <div v-if="field.type === 'days-input'" class="relative w-32 border border-gray-100 rounded-lg py-2 pl-3 pr-12">

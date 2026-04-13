@@ -3,7 +3,7 @@
  * Inspired by Next.js fetch patterns.
  */
 
-const BASE_URL = 'https://staging-data.moonbot.id/moon_office';
+export const BASE_URL = 'https://staging-data.moonbot.id/moon_office';
 
 /**
  * Custom fetch wrapper for Moon Office API
