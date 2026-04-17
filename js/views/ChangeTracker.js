@@ -1,5 +1,5 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=32';
+import DataTable from '../components/DataTable.js?v=33';
 import SearchInput from '../components/SearchInput.js';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
@@ -10,7 +10,8 @@ export default {
     components: {
         MainLayout,
         DataTable,
-        SearchInput
+        SearchInput,
+        DatePicker
     },
     data() {
         return {
@@ -23,7 +24,8 @@ export default {
             },
             monthPickerConfig: {
                 plugins: [
-                    typeof monthSelectPlugin !== 'undefined' ? new monthSelectPlugin({
+                    (typeof monthSelectPlugin !== 'undefined' || (typeof flatpickr !== 'undefined' && flatpickr.plugins && flatpickr.plugins.monthSelect)) ? 
+                    new (monthSelectPlugin || flatpickr.plugins.monthSelect)({
                         shorthand: true,
                         dateFormat: "Y-m",
                         altFormat: "M Y",
@@ -179,7 +181,7 @@ export default {
                         <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
                         <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
-                            <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                            <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>

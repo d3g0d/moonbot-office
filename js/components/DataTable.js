@@ -82,9 +82,10 @@ export default {
             return this.serverSide ? this.totalItems : this.data.length;
         },
         sortedData() {
-            if (!this.sortKey) return this.data;
+            const data = Array.isArray(this.data) ? this.data : [];
+            if (!this.sortKey) return data;
 
-            return [...this.data].sort((a, b) => {
+            return [...data].sort((a, b) => {
                 let aVal = a[this.sortKey];
                 let bVal = b[this.sortKey];
 
@@ -98,8 +99,10 @@ export default {
         },
         paginatedData() {
             if (this.serverSide) return this.sortedData;
+            const data = this.sortedData;
+            if (!Array.isArray(data)) return [];
             const start = (this.activeCurrentPage - 1) * this.activeRowsPerPage;
-            return this.sortedData.slice(start, start + this.activeRowsPerPage);
+            return data.slice(start, start + this.activeRowsPerPage);
         },
         showingFrom() {
             if (this.activeTotalItems === 0) return 0;

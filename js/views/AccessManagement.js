@@ -1,6 +1,6 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
 import SearchInput from '../components/SearchInput.js?v=2';
-import DataTable from '../components/DataTable.js?v=32';
+import DataTable from '../components/DataTable.js?v=33';
 import ActionDropdown from '../components/ActionDropdown.js?v=2';
 import Modal from '../components/Modal.js?v=2';
 import FormInput from '../components/FormInput.js?v=2';
@@ -74,9 +74,10 @@ export default {
     },
     computed: {
         filteredUsers() {
-            if (!this.searchQuery) return this.admins;
+            const admins = Array.isArray(this.admins) ? this.admins : [];
+            if (!this.searchQuery) return admins;
             const query = this.searchQuery.toLowerCase();
-            return this.admins.filter(user =>
+            return admins.filter(user =>
                 user.username?.toLowerCase().includes(query) ||
                 user.role_label?.toLowerCase().includes(query)
             );
@@ -92,7 +93,7 @@ export default {
             this.error = null;
             try {
                 const response = await fetchApi('/admins');
-                this.admins = response.data || [];
+                this.admins = Array.isArray(response.data) ? response.data : (response.data?.admins || []);
             } catch (err) {
                 console.error('Failed to fetch admins:', err);
                 this.error = 'Failed to load administrative users.';

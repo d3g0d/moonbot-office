@@ -1,11 +1,13 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
 import { formatNumber } from '../utils/formatters.js';
 import { fetchApi } from '../utils/api.js?v=4';
+import DatePicker from '../components/DatePicker.js?v=2';
 
 export default {
     name: 'Dashboard',
     components: {
-        MainLayout
+        MainLayout,
+        DatePicker
     },
     data() {
         return {
@@ -13,7 +15,55 @@ export default {
             error: null,
             filters: {
                 timeframe: 'all-time',
+                dateRange: '', // Stores "YYYY-MM-DD to YYYY-MM-DD"
                 plan: ''
+            },
+            rangePickerConfig: {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'M j, Y',
+                onValueUpdate: (selectedDates, dateStr, instance) => {
+                    if (selectedDates.length === 2) {
+                        const start = selectedDates[0];
+                        const end = selectedDates[1];
+                        const diffInDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffInDays > 90) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Date Range Limit',
+                                text: 'Maximum date range is 90 days',
+                                confirmButtonColor: '#39DEBB'
+                            });
+                            instance.clear();
+                        }
+                    }
+                },
+                onReady: (selectedDates, dateStr, instance) => {
+                    const container = instance.calendarContainer;
+                    if (!container) return;
+                    
+                    if (container.querySelector('.flatpickr-actions-custom')) return;
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'flatpickr-actions-custom flex border-t border-gray-100 mt-1 p-1';
+                    
+                    const btn = document.createElement('button');
+                    btn.innerHTML = 'All Time';
+                    btn.className = 'w-full py-2 text-sm font-bold text-[#39DEBB] hover:bg-gray-50 rounded-lg transition-colors';
+                    btn.type = 'button';
+                    
+                    btn.addEventListener('click', () => {
+                        instance.clear();
+                        // Accessing Vue data from non-context function
+                        // We can use @change on the DatePicker to handle the timeframe update
+                        instance.close();
+                    });
+                    
+                    actionsDiv.appendChild(btn);
+                    container.appendChild(actionsDiv);
+                }
             },
             stats: {
                 global: {},
@@ -54,12 +104,24 @@ export default {
             try {
                 const params = new URLSearchParams();
                 
-                // Map timeframe to start_date/end_date logic if needed
-                // For now, following the simple select options
+                // Map timeframe to start_date/end_date logic
                 if (this.filters.timeframe === 'this-year') {
                     params.append('start_date', new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]);
                 } else if (this.filters.timeframe === 'this-month') {
                     params.append('start_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+                } else if (this.filters.timeframe === 'custom' && this.filters.dateRange) {
+                    const dates = this.filters.dateRange.split(' to ');
+                    if (dates.length === 2) {
+                        params.append('start_date', dates[0]);
+                        params.append('end_date', dates[1]);
+                    } else if (dates.length === 1) {
+                        params.append('start_date', dates[0]);
+                        params.append('end_date', dates[0]);
+                    }
+                } else {
+                    // Send empty for all-time
+                    params.append('start_date', '');
+                    params.append('end_date', '');
                 }
 
                 if (this.filters.plan) {
@@ -90,12 +152,7 @@ export default {
                     <p class="text-xs text-gray-500 mt-1">{{ lastUpdated }}</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button @click="fetchStats" class="text-xs font-medium text-[#00A3FF] hover:underline px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all">
-                        Refresh Data
-                    </button>
-                    <button class="text-gray-400 hover:text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition-all">
-                       <img src="./assets/images/icons/download.svg" alt="Download" class="h-5 w-5">
-                    </button>
+               
                 </div>
             </div>
 
@@ -103,16 +160,21 @@ export default {
             <div class="flex flex-wrap items-center gap-4 mb-8">
                 <!-- Timeframe Filter -->
                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-xs whitespace-nowrap">Timeframe:</span>
-                        <select v-model="filters.timeframe" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-xs font-medium focus:outline-none cursor-pointer min-w-[120px]">
-                            <option value="all-time">All-time</option>
-                            <option value="this-year">This Year</option>
-                            <option value="this-month">This Month</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    <DatePicker v-model="filters.dateRange" :config="rangePickerConfig" @change="(dates, str) => { if(!str) filters.timeframe = 'all-time'; else filters.timeframe = 'custom'; }">
+                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
+                            <span class="pl-4 py-2 text-gray-500 text-xs whitespace-nowrap">Timeframe:</span>
+                            <span class="py-2 pl-2 pr-10 text-xs font-medium min-w-[120px]">
+                                {{ filters.timeframe === 'custom' ? (filters.dateRange ? filters.dateRange.replace(' to ', ' - ') : 'Select Range') : (filters.timeframe === 'all-time' ? 'All-time' : (filters.timeframe === 'this-year' ? 'This Year' : 'This Month')) }}
+                            </span>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
                         </div>
+                    </DatePicker>
+                    
+                    <!-- Preset Toggle (Optional, maybe user wants a way to reset to presets) -->
+                    <div v-if="filters.timeframe === 'custom'" @click="filters.timeframe = 'all-time'; filters.dateRange = ''" class="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full p-1 cursor-pointer shadow-sm border border-gray-200">
+                        <svg class="h-2 w-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </div>
                 </div>
 

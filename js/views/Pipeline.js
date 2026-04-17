@@ -1,7 +1,8 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=32';
+import DataTable from '../components/DataTable.js?v=33';
 import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
+import DatePicker from '../components/DatePicker.js?v=2';
 import { formatRank, formatPercentWithDays, formatNumber } from '../utils/formatters.js';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 
@@ -11,7 +12,8 @@ export default {
         MainLayout,
         DataTable,
         SearchInput,
-        FilterDropdown
+        FilterDropdown,
+        DatePicker
     },
     data() {
         return {
@@ -22,13 +24,10 @@ export default {
                 leader: 'All',
                 vipPlan: ''
             },
-            sort: {
-                sortBy: '',
-                sortDir: 'desc'
-            },
             monthPickerConfig: {
                 plugins: [
-                    typeof monthSelectPlugin !== 'undefined' ? new monthSelectPlugin({
+                    (typeof monthSelectPlugin !== 'undefined' || (typeof flatpickr !== 'undefined' && flatpickr.plugins && flatpickr.plugins.monthSelect)) ? 
+                    new (monthSelectPlugin || flatpickr.plugins.monthSelect)({
                         shorthand: true,
                         dateFormat: "Y-m",
                         altFormat: "M Y",
@@ -36,6 +35,11 @@ export default {
                     }) : null
                 ].filter(Boolean)
             },
+            sort: {
+                sortBy: '',
+                sortDir: 'desc'
+            },
+
             summary: {
                 conversion: {
                     join: { pct: 100 },
@@ -582,7 +586,12 @@ export default {
                 window.URL.revokeObjectURL(downloadUrl);
             } catch (error) {
                 console.error('Export error:', error);
-                alert('Gagal mendownload data export. Silakan coba lagi.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Export Failed',
+                    text: 'Gagal mendownload data export. Silakan coba lagi.',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         }
     },
@@ -592,10 +601,13 @@ export default {
                 <h1 class="text-2xl font-bold text-gray-900">Pipeline</h1>
             </div>
 
+
             <div v-if="!selectedLeader">
-                <!-- Filters -->
+
+            
+                <!-- Global Filters -->
                 <div class="flex flex-wrap items-center gap-4 mb-8">
-                    <!-- Month Filter -->
+                     <!-- Month Filter -->
                     <div class="relative">
                         <DatePicker v-model="filters.month" :config="monthPickerConfig">
                             <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
@@ -614,7 +626,7 @@ export default {
                             <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
                             <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                                 <option value="All">All</option>
-                                <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                                <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
                                    <!-- <option value="Main Leader">Main Leader</option> -->
                             </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
@@ -638,8 +650,6 @@ export default {
                             </div>
                         </div>
                     </div>
-
-                  
                 </div>
 
                 <!-- Average Conversion section -->
@@ -802,7 +812,7 @@ export default {
                             </svg>
                         </button>
                         <h2 class="text-lg font-bold text-gray-800">
-                            Drilldown Summary ({{ filters.month }}) - {{ selectedLeader }}
+                            Drilldown Summary - {{ selectedLeader }}
                         </h2>
                     </div>
 

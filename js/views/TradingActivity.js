@@ -1,5 +1,5 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=32';
+import DataTable from '../components/DataTable.js?v=33';
 import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=3';
 import DatePicker from '../components/DatePicker.js?v=2';
@@ -90,16 +90,16 @@ export default {
             activeFilters: {},
             isFilterOpen: false,
             filterSchema: [
-                // {
-                //     type: 'checkbox-group',
-                //     label: 'VIP Plan',
-                //     key: 'vipPlan',
-                //     options: [
-                //         { label: 'Basic', value: 'Basic' },
-                //         { label: 'Advance', value: 'Advance' },
-                //         { label: 'Pro+', value: 'Pro+' }
-                //     ]
-                // },
+                {
+                    type: 'checkbox-group',
+                    label: 'VIP Plan',
+                    key: 'vipPlan',
+                    options: [
+                        { label: 'Basic', value: 'Basic' },
+                        { label: 'Advance', value: 'Advance' },
+                        { label: 'Pro+', value: 'Pro+' }
+                    ]
+                },
                 {
                     type: 'input-range',
                     label: 'Profit (All Time)',
@@ -152,8 +152,45 @@ export default {
                 dateFormat: 'Y-m-d',
                 altInput: true,
                 altFormat: 'M j, Y',
-                onOpen: (selectedDates, dateStr, instance) => {
-                    // Pre-fill today if empty? Or just leave it.
+                onValueUpdate: (selectedDates, dateStr, instance) => {
+                    if (selectedDates.length === 2) {
+                        const start = selectedDates[0];
+                        const end = selectedDates[1];
+                        const diffInDays = Math.floor((end - start) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffInDays > 90) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Date Range Limit',
+                                text: 'Maximum date range is 90 days',
+                                confirmButtonColor: '#39DEBB'
+                            });
+                            instance.clear();
+                        }
+                    }
+                },
+                onReady: (selectedDates, dateStr, instance) => {
+                    const container = instance.calendarContainer;
+                    if (!container) return;
+                    
+                    // Check if already has actions div to avoid duplicates
+                    if (container.querySelector('.flatpickr-actions-custom')) return;
+
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'flatpickr-actions-custom flex border-t border-gray-100 mt-1 p-1';
+                    
+                    const btn = document.createElement('button');
+                    btn.innerHTML = 'All Time';
+                    btn.className = 'w-full py-2 text-sm font-bold text-[#39DEBB] hover:bg-gray-50 rounded-lg transition-colors';
+                    btn.type = 'button';
+                    
+                    btn.addEventListener('click', () => {
+                        instance.clear();
+                        instance.close();
+                    });
+                    
+                    actionsDiv.appendChild(btn);
+                    container.appendChild(actionsDiv);
                 }
             }
         }
@@ -234,6 +271,9 @@ export default {
                         params.append('start_date', dates[0]);
                         params.append('end_date', dates[0]);
                     }
+                } else {
+                    params.append('start_date', '');
+                    params.append('end_date', '');
                 }
                 
                 if (params.toString()) {
@@ -298,6 +338,9 @@ export default {
                         params.append('start_date', dates[0]);
                         params.append('end_date', dates[0]);
                     }
+                } else {
+                    params.append('start_date', '');
+                    params.append('end_date', '');
                 }
 
                 const response = await fetchApi(`/trading-activity/leaders?${params.toString()}`);
@@ -359,9 +402,22 @@ export default {
                         params.append('start_date', dates[0]);
                         params.append('end_date', dates[0]);
                     }
+                } else {
+                    params.append('start_date', '');
+                    params.append('end_date', '');
                 }
 
                 // Add Detailed Filters
+                if (this.activeFilters.vipPlan && Array.isArray(this.activeFilters.vipPlan)) {
+                    this.activeFilters.vipPlan.forEach(plan => {
+                        let planVal = plan;
+                        if (plan === 'Basic') planVal = '1';
+                        else if (plan === 'Advance') planVal = '2';
+                        else if (plan === 'Pro+') planVal = '3';
+                        params.append('plan', planVal);
+                    });
+                }
+                
                 if (this.activeFilters.stable_capital) params.append('stable_capital', this.activeFilters.stable_capital);
                 if (this.activeFilters.profit_min) params.append('profit_min', this.activeFilters.profit_min);
                 if (this.activeFilters.credit) {
@@ -460,6 +516,9 @@ export default {
                     params.append('start_date', dates[0]);
                     params.append('end_date', dates[0]);
                 }
+            } else {
+                params.append('start_date', '');
+                params.append('end_date', '');
             }
 
             // Detailed Filters
@@ -496,7 +555,12 @@ export default {
                 window.URL.revokeObjectURL(downloadUrl);
             } catch (error) {
                 console.error('Export error:', error);
-                alert('Gagal mendownload data export. Silakan coba lagi.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Export Failed',
+                    text: 'Gagal mendownload data export. Silakan coba lagi.',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         },
         exportDrilldownPdf() {
@@ -571,53 +635,52 @@ export default {
                 </div>
             </div>
 
-            <!-- Global Filters -->
-            <div class="flex flex-wrap gap-4 mb-8">
-                <!-- Date Range Filter -->
-                <div class="relative">
-                    <DatePicker v-model="filters.dateRange" :config="rangePickerConfig">
-                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
-                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Timeframe:</span>
-                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.dateRange ? filters.dateRange.replace(' to ', ' - ') : 'Select Range' }}</span>
+            <!-- View Content -->
+            <div v-if="!selectedLeader">
+                <!-- Global Filters -->
+                <div class="flex flex-wrap gap-4 mb-8">
+                    <!-- Date Range Filter -->
+                    <div class="relative">
+                        <DatePicker v-model="filters.dateRange" :config="rangePickerConfig">
+                            <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
+                                <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Timeframe:</span>
+                                <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.dateRange ? filters.dateRange.replace(' to ', ' - ') : 'All Time' }}</span>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </DatePicker>
+                    </div>
+                    <!-- Leader Rank Filter -->
+                     <div class="relative">
+                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
+                            <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                                <option value="All">All</option>
+                                <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                                <!-- <option value="Main Leader">Main Leader</option> -->
+                            </select>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
                         </div>
-                    </DatePicker>
-                </div>
-                <!-- Leader Rank Filter -->
-                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
-                        <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
-                            <option value="All">All</option>
-                            <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
-                            <!-- <option value="Main Leader">Main Leader</option> -->
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                     <!-- VIP Plan Filter -->
+                     <div class="relative">
+                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">VIP Plan :</span>
+                            <select v-model="filters.vipPlan" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                                <option value="All">All</option>
+                                <option value="1">B+</option>
+                                <option value="2">A+</option>
+                                <option value="3">P+</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
                         </div>
                     </div>
                 </div>
-                 <!-- VIP Plan Filter -->
-                 <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">VIP Plan :</span>
-                        <select v-model="filters.vipPlan" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
-                            <option value="All">All</option>
-                            <option value="1">B+</option>
-                            <option value="2">A+</option>
-                            <option value="3">P+</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- View Content -->
-            <div v-if="!selectedLeader">
 
                 <!-- Stats/Metrics Cards -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap mb-8 py-2 overflow-x-auto custom-scrollbar">

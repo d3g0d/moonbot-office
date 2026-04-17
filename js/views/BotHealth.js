@@ -1,6 +1,6 @@
 import MainLayout from '../layouts/MainLayout.js?v=24';
 import SearchInput from '../components/SearchInput.js';
-import DataTable from '../components/DataTable.js?v=32';
+import DataTable from '../components/DataTable.js?v=33';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatNumber } from '../utils/formatters.js'; 
@@ -121,16 +121,17 @@ export default {
                     },
                     {
                         type: 'text',
-                        label: 'Upline rank 6',
-                        key: 'upper_upline',
+                        label: 'Upline rank 3',
+                        key: 'upline',
                         placeholder: 'Username'
                     },
                     {
                         type: 'text',
-                        label: 'Upline rank 3',
-                        key: 'upline',
+                        label: 'Upline rank 6',
+                        key: 'upper_upline',
                         placeholder: 'Username'
-                    }
+                    },
+                    
                 ];
             } else {
                 // Leaders view filters
@@ -219,8 +220,10 @@ export default {
                     params.append('plan', this.filters.vipPlan);
                 }
 
+                // Add Rank
                 if (this.filters.leader && this.filters.leader !== 'All') {
-                    params.append('rank', this.filters.leader);
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('rank', rank);
                 }
 
                 // Synchronize with Drilldown context
@@ -228,12 +231,12 @@ export default {
                     params.append('leader', this.selectedLeader.leader);
                     
                     if (this.activeFilters.funds) {
-                        if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
-                        else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
+                        if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '1');
+                        else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '0');
                     }
                     if (this.activeFilters.creditStatus) {
-                        if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
-                        else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
+                        if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '1');
+                        else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '0');
                     }
                     if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
                     if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
@@ -285,7 +288,8 @@ export default {
                 // Use global filters for date and rank
                 if (this.filters.date) params.append('date', this.filters.date);
                 if (this.filters.leader && this.filters.leader !== 'All') {
-                    params.append('rank', this.filters.leader);
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('rank', rank);
                 }
 
                 // Add Toolbar Filters
@@ -364,14 +368,20 @@ export default {
                     params.append('date', this.filters.date);
                 }
 
+                // Add Rank for Drilldown
+                if (this.filters.leader && this.filters.leader !== 'All') {
+                    const rank = this.filters.leader.split(' ')[0];
+                    params.append('rank', rank);
+                }
+
                 // Add Toolbar Flags for Drilldown (Postman mapping: 1=insufficient/no credit, 0=sufficient/credit available)
                 if (this.activeFilters.funds) {
-                    if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
-                    else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
+                    if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '1');
+                    else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '0');
                 }
                 if (this.activeFilters.creditStatus) {
-                    if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
-                    else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
+                    if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '1');
+                    else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '0');
                 }
 
                 let url = `/bot-health/drilldown?${params.toString()}`;
@@ -435,17 +445,18 @@ export default {
             const params = new URLSearchParams({
                 leader: this.selectedLeader.leader,
                 date: this.filters.date || '',
+                rank: this.filters.leader !== 'All' ? this.filters.leader.split(' ')[0] : '',
                 search: this.searchQuery || ''
             });
 
             // Mapping activeFilters to Postman parameters
             if (this.activeFilters.funds) {
-                if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '0');
-                else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '1');
+                if (this.activeFilters.funds.includes('Insufficient')) params.append('floating', '1');
+                else if (this.activeFilters.funds.includes('Sufficient')) params.append('floating', '0');
             }
             if (this.activeFilters.creditStatus) {
-                if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '0');
-                else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '1');
+                if (this.activeFilters.creditStatus.includes('No Credit Available')) params.append('credit', '1');
+                else if (this.activeFilters.creditStatus.includes('Credit Available')) params.append('credit', '0');
             }
             if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
             if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
@@ -514,6 +525,7 @@ export default {
     },
     template: `
         <MainLayout>
+            <!-- Main View Title -->
             <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-gray-900">Bot Health</h1>
                 <div class="text-xs text-gray-500 italic">
@@ -521,25 +533,14 @@ export default {
                 </div>
             </div>
 
-            <!-- Global Timeframe Filter -->
-            <div class="flex flex-wrap gap-4 mb-8">
-                <!-- Date Filter -->
-                <div class="relative">
-                    <DatePicker v-model="filters.date" :config="datePickerConfig">
-                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
-                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Date:</span>
-                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.date || 'Select Date' }}</span>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                            </div>
-                        </div>
-                    </DatePicker>
-                </div>
+            <!-- Global Filters -->
+            <div v-if="!selectedLeader" class="flex flex-wrap items-center gap-4 mb-8">
+              
 
-                <!-- Leader Rank Filter (Main View only) -->
-                 <div v-if="!selectedLeader" class="relative">
+                <!-- Leader Rank Filter -->
+                <div class="relative">
                     <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Rank :</span>
+                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
                         <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
                             <option v-for="n in 9" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
@@ -549,9 +550,8 @@ export default {
                         </div>
                     </div>
                 </div>
+ 
             </div>
-
-            <!-- View Content -->
             <div v-if="!selectedLeader" class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-nowrap mb-6 py-1 overflow-x-auto custom-scrollbar">
                 <!-- Stats/Metrics Cards -->
                 <div v-for="(stat, index) in summaryStats" :key="index" 
