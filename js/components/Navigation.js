@@ -22,30 +22,17 @@ export default {
             roleName: localStorage.getItem('moon_office_role') || 'User',
             searchQuery: 'Dashboards',
             expanded: {
-                'Bot Health': false,
-                'Trading Activity': false,
                 'Activation Pipeline': false,
+                'Trading Activity': false,
+               
+                'Bot Health': false,
+                 
                 'Tools': false
             },
             menuGroups: [
                 {
                     items: [
-                        {
-                            id: 'bot-health',
-                            label: 'Bot Health',
-                            iconFile: 'bot_health.svg',
-                            path: '/bot-health',
-                            featureName: 'bot_health'
-                        },
-                        {
-                            id: 'trading-activity',
-                            label: 'Trading Activity',
-                            iconFile: 'trading_activity.svg',
-                            path: '/trading-activity',
-                            featureName: 'trading_activity'
-                        },
-
-                        {
+                         {
                             id: 'activation-pipeline',
                             label: 'Activation Pipeline',
                             iconFile: 'activation_pipline.svg',
@@ -54,7 +41,24 @@ export default {
                                 { label: 'Pipeline', path: '/pipeline' },
                                 { label: 'Change Tracker', path: '/change-tracker' }
                             ]
-                        }
+                        },
+                        {
+                            id: 'trading-activity',
+                            label: 'Trading Activity',
+                            iconFile: 'trading_activity.svg',
+                            path: '/trading-activity',
+                            featureName: 'trading_activity'
+                        },
+                        {
+                            id: 'bot-health',
+                            label: 'Bot Health',
+                            iconFile: 'bot_health.svg',
+                            path: '/bot-health',
+                            featureName: 'bot_health'
+                        },
+                       
+
+                        
                     ]
                 },
                 // {

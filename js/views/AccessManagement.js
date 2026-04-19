@@ -1,6 +1,6 @@
-import MainLayout from '../layouts/MainLayout.js?v=24';
+import MainLayout from '../layouts/MainLayout.js?v=25';
 import SearchInput from '../components/SearchInput.js?v=2';
-import DataTable from '../components/DataTable.js?v=33';
+import DataTable from '../components/DataTable.js?v=34';
 import ActionDropdown from '../components/ActionDropdown.js?v=2';
 import Modal from '../components/Modal.js?v=2';
 import FormInput from '../components/FormInput.js?v=2';
@@ -334,15 +334,16 @@ export default {
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <!-- Toolbar -->
                 <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-4"> 
-                        <!-- Search Input -->
-                        <SearchInput v-model="searchQuery" placeholder="Search" />
+                    <div class="flex items-center gap-4 w-full md:w-auto"> 
+                        <div class="w-full md:w-64 h-11">
+                            <SearchInput v-model="searchQuery" placeholder="Search Username/Email" width="w-full" class="h-full border-gray-200" />
+                        </div>
                     </div>
 
                     <!-- Add Button -->
                     <button 
                         @click="openAddModal"
-                        class="p-3 bg-[#39DEBB] text-white rounded-lg hover:from-teal-500 hover:to-emerald-600 transition-all shadow-lg shadow-teal-500/30"
+                        class="p-3 bg-[#39DEBB] text-white rounded-lg hover:from-teal-500 hover:to-emerald-600 transition-all shadow-lg shadow-teal-500/30 shrink-0"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

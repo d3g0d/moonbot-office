@@ -1,5 +1,5 @@
-import MainLayout from '../layouts/MainLayout.js?v=24';
-import DataTable from '../components/DataTable.js?v=33';
+import MainLayout from '../layouts/MainLayout.js?v=25';
+import DataTable from '../components/DataTable.js?v=34';
 import SearchInput from '../components/SearchInput.js';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
@@ -44,7 +44,7 @@ export default {
                 totalPages: 0
             },
             sort: {
-                sortBy: '',
+                sortBy: 'increment_0',
                 sortDir: 'desc'
             }
         }
@@ -74,9 +74,9 @@ export default {
                 },
                 { key: 'total_join', label: 'TOTAL JOIN', sortable: true, align: 'center' },
                 { key: 'base_bot_run_pct', label: baseLabel, sortable: true, align: 'center' },
-                { key: 'inc_1', label: incLabel1, sortable: false, align: 'center' },
-                { key: 'inc_2', label: incLabel2, sortable: false, align: 'center' },
-                { key: 'inc_3', label: incLabel3, sortable: false, align: 'center' },
+                { key: 'increment_0', label: incLabel1, sortable: true, align: 'center' },
+                { key: 'increment_1', label: incLabel2, sortable: true, align: 'center' },
+                { key: 'increment_2', label: incLabel3, sortable: true, align: 'center' },
                 { key: 'cumulative_pct', label: 'CUMULATIVE', sortable: true, align: 'center' }
             ];
         }
@@ -122,7 +122,7 @@ export default {
 
                 if (this.filters.leader && this.filters.leader !== 'All') {
                     const rank = this.filters.leader.split(' ')[0];
-                    params.append('leader', rank);
+                    params.append('rank', rank);
                 }
 
                 const response = await fetchApi(`/pipeline/change-tracker?${params.toString()}`);
@@ -155,20 +155,27 @@ export default {
             this.sort.sortDir = order;
             this.pagination.page = 1;
             this.fetchChangeTracker();
+        },
+        getBotRunClass(value) {
+            const val = parseFloat(value);
+            if (isNaN(val)) return 'px-2 py-1 bg-gray-100 text-gray-400 rounded-lg font-bold min-w-[60px] inline-block text-center';
+            if (val > 85) return 'px-2 py-1 bg-[#22C55E] text-white rounded-lg font-bold min-w-[60px] inline-block text-center shadow-sm';
+            if (val >= 60) return 'px-2 py-1 bg-[#F9B33F] text-white rounded-lg font-bold min-w-[60px] inline-block text-center shadow-sm';
+            return 'px-2 py-1 bg-[#EF4444] text-white rounded-lg font-bold min-w-[60px] inline-block text-center shadow-sm';
         }
     },
     template: `
         <MainLayout>
             <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-gray-900">Change Tracker</h1>
-            </div>            <div class="flex flex-wrap items-center gap-4 mb-8">
+            </div>            <div class="flex flex-wrap items-center gap-3 mb-8">
                 <!-- Month Filter -->
-                <div class="relative">
+                <div class="relative w-full sm:w-auto">
                     <DatePicker v-model="filters.month" :config="monthPickerConfig">
-                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
-                            <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Month:</span>
-                            <span class="py-2 pl-2 pr-10 text-sm font-medium min-w-[120px]">{{ filters.month || 'Select Month' }}</span>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                        <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
+                            <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Month:</span>
+                            <span class="px-4 pb-2 sm:py-2 sm:pl-2 pr-12 text-sm font-medium min-w-[120px] leading-relaxed">{{ filters.month || 'Select Month' }}</span>
+                            <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
                         </div>
@@ -176,14 +183,14 @@ export default {
                 </div>
  
                 <!-- Leader Filter -->
-                <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-sm whitespace-nowrap">Leader :</span>
-                        <select v-model="filters.leader" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                <div class="relative w-full sm:w-auto">
+                    <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                        <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Leader :</span>
+                        <select v-model="filters.leader" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
                             <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
+                        <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
@@ -194,7 +201,7 @@ export default {
                  <!-- Data Table Toolbar (Internal Search) -->
                  <div class="flex flex-wrap md:flex-nowrap justify-start items-center mb-6">
                     <div class="w-full md:w-64 h-11 relative">
-                        <SearchInput v-model="internalSearchQuery" placeholder="Exact Leader" class="h-full border-gray-200 text-sm" />
+                        <SearchInput v-model="internalSearchQuery" placeholder="Exact Leader" width="w-full" class="h-full border-gray-200 text-sm" />
                     </div>
                 </div>
 
@@ -241,30 +248,34 @@ export default {
                         
                         <!-- Base Conversion styling -->
                         <template #cell-base_bot_run_pct="{ value }">
-                            <span class="text-gray-900 font-medium">{{ value !== null ? value + '%' : '0%' }}</span>
+                            <div class="flex justify-center">
+                                <span :class="getBotRunClass(value)">{{ value !== null ? value + '%' : '0%' }}</span>
+                            </div>
                         </template>
 
                         <!-- Increment slots -->
-                        <template #cell-inc_1="{ row }">
+                        <template #cell-increment_0="{ row }">
                             <span class="text-gray-900 font-medium">
                                 {{ row.increments && row.increments[0] ? row.increments[0].pct + '%' : '0%' }}
                             </span>
                         </template>
 
-                        <template #cell-inc_2="{ row }">
+                        <template #cell-increment_1="{ row }">
                             <span class="text-gray-900 font-medium">
                                 {{ row.increments && row.increments[1] ? row.increments[1].pct + '%' : '0%' }}
                             </span>
                         </template>
 
-                        <template #cell-inc_3="{ row }">
+                        <template #cell-increment_2="{ row }">
                             <span class="text-gray-900 font-medium">
                                 {{ row.increments && row.increments[2] ? row.increments[2].pct + '%' : '0%' }}
                             </span>
                         </template>
 
                         <template #cell-cumulative_pct="{ value }">
-                            <span class="text-gray-900 font-medium">{{ value !== null ? value + '%' : '0%' }}</span>
+                            <div class="flex justify-center">
+                                <span :class="getBotRunClass(value)">{{ value !== null ? value + '%' : '0%' }}</span>
+                            </div>
                         </template>
 
                         <template #cell-total_join="{ value }">

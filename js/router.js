@@ -28,14 +28,29 @@ const routes = [
         component: () => import('./views/BotHealth.js?v=9') // Bot Health page
     },
     {
+        path: '/bot-health/drilldown',
+        name: 'BotHealthDrilldown',
+        component: () => import('./views/BotHealthDrilldown.js?v=1') // Bot Health Drilldown page
+    },
+    {
         path: '/trading-activity',
         name: 'TradingActivity',
-        component: () => import('./views/TradingActivity.js?v=10') // Trading Activity page
+        component: () => import('./views/TradingActivity.js?v=11') // Trading Activity page
+    },
+    {
+        path: '/trading-activity/drilldown',
+        name: 'TradingActivityDrilldown',
+        component: () => import('./views/TradingActivityDrilldown.js?v=2') // Trading Activity Drilldown page
     },
     {
         path: '/pipeline',
         name: 'Pipeline',
         component: () => import('./views/Pipeline.js?v=4') // Pipeline page
+    },
+    {
+        path: '/pipeline/drilldown',
+        name: 'PipelineDrilldown',
+        component: () => import('./views/PipelineDrilldown.js?v=1') // Pipeline Drilldown page
     },
     {
         path: '/change-tracker',

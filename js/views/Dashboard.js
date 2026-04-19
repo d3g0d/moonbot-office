@@ -1,5 +1,5 @@
-import MainLayout from '../layouts/MainLayout.js?v=24';
-import { formatNumber } from '../utils/formatters.js';
+import MainLayout from '../layouts/MainLayout.js?v=25';
+import { formatNumber, getDefaultDateRange } from '../utils/formatters.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
 
@@ -14,8 +14,8 @@ export default {
             loading: false,
             error: null,
             filters: {
-                timeframe: 'all-time',
-                dateRange: '', // Stores "YYYY-MM-DD to YYYY-MM-DD"
+                timeframe: 'custom',
+                dateRange: getDefaultDateRange(), // Stores "YYYY-MM-DD to YYYY-MM-DD"
                 plan: ''
             },
             rangePickerConfig: {
@@ -157,13 +157,13 @@ export default {
             </div>
 
             <!-- Filters -->
-            <div class="flex flex-wrap items-center gap-4 mb-8">
+            <div class="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-3 sm:gap-4 mb-8">
                 <!-- Timeframe Filter -->
-                <div class="relative">
-                    <DatePicker v-model="filters.dateRange" :config="rangePickerConfig" @change="(dates, str) => { if(!str) filters.timeframe = 'all-time'; else filters.timeframe = 'custom'; }">
-                        <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
-                            <span class="pl-4 py-2 text-gray-500 text-xs whitespace-nowrap">Timeframe:</span>
-                            <span class="py-2 pl-2 pr-10 text-xs font-medium min-w-[120px]">
+                <div class="relative w-full sm:w-auto">
+                    <DatePicker v-model="filters.dateRange" :config="rangePickerConfig" @change="(dates, str) => { if(!str) filters.timeframe = 'all-time'; else filters.timeframe = 'custom'; }" class="w-full">
+                        <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm px-1 py-1 sm:py-0.5 cursor-pointer w-full">
+                            <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Timeframe:</span>
+                            <span class="px-4 pb-2 sm:py-2 sm:pl-2 pr-12 text-xs font-medium flex-1 leading-relaxed">
                                 {{ filters.timeframe === 'custom' ? (filters.dateRange ? filters.dateRange.replace(' to ', ' - ') : 'Select Range') : (filters.timeframe === 'all-time' ? 'All-time' : (filters.timeframe === 'this-year' ? 'This Year' : 'This Month')) }}
                             </span>
                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-700">
@@ -173,16 +173,16 @@ export default {
                     </DatePicker>
                     
                     <!-- Preset Toggle (Optional, maybe user wants a way to reset to presets) -->
-                    <div v-if="filters.timeframe === 'custom'" @click="filters.timeframe = 'all-time'; filters.dateRange = ''" class="absolute -top-2 -right-2 bg-gray-100 hover:bg-gray-200 rounded-full p-1 cursor-pointer shadow-sm border border-gray-200">
+                    <div v-if="filters.timeframe === 'custom'" @click="filters.timeframe = 'all-time'; filters.dateRange = ''" class="absolute -top-2 -right-1 bg-gray-100 hover:bg-gray-200 rounded-full p-1 cursor-pointer shadow-sm border border-gray-200 z-10">
                         <svg class="h-2 w-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </div>
                 </div>
 
                 <!-- VIP Plan Filter -->
-                <div class="relative">
-                    <div class="flex items-center bg-white border border-gray-100 text-gray-700 rounded-full shadow-sm overflow-hidden px-1 py-0.5">
-                        <span class="pl-4 py-2 text-gray-500 text-xs whitespace-nowrap">VIP Plan:</span>
-                        <select v-model="filters.plan" class="appearance-none bg-transparent py-2 pl-2 pr-10 text-xs font-medium focus:outline-none cursor-pointer min-w-[120px]">
+                <div class="relative w-full sm:w-auto">
+                    <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm px-1 py-1 sm:py-0.5 w-full">
+                        <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">VIP Plan:</span>
+                        <select v-model="filters.plan" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 sm:pr-10 text-xs font-medium focus:outline-none cursor-pointer flex-1 w-full sm:w-auto min-w-[120px]">
                             <option value="">All Plans</option>
                             <option value="1">B+</option>
                             <option value="2">A+</option>

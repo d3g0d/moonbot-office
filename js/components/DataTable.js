@@ -83,7 +83,7 @@ export default {
         },
         sortedData() {
             const data = Array.isArray(this.data) ? this.data : [];
-            if (!this.sortKey) return data;
+            if (!this.sortKey || this.serverSide) return data;
 
             return [...data].sort((a, b) => {
                 let aVal = a[this.sortKey];
