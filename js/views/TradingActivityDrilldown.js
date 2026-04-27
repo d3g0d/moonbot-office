@@ -3,7 +3,7 @@ import DataTable from '../components/DataTable.js?v=34';
 import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=3';
 import DatePicker from '../components/DatePicker.js?v=2';
-import { formatNumber, JsonToCSV, JsonToPDF, getDefaultDateRange } from '../utils/formatters.js?v=2';
+import { formatNumber, formatRank, JsonToCSV, JsonToPDF, getDefaultDateRange } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 
 export default {
@@ -87,8 +87,8 @@ export default {
                 { key: 'coinGroup', label: 'coin group', sortable: true, align: 'center', colWidth: '120px' },
                 { key: 'mm', label: 'MM', sortable: true, align: 'center', colWidth: '100px' },
                 { key: 'maxCoin', label: 'Max coin', sortable: true, align: 'center', colWidth: '100px' },
-                { key: 'upper_upline', label: 'UPLINE RANK 6', sortable: true, align: 'center', colWidth: '150px' },
-                { key: 'upline', label: 'UPLINE RANK 3', sortable: true, align: 'center', colWidth: '150px' }
+                { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'upline', label: 'SILVER', sortable: true, align: 'center', colWidth: '150px' }
             ],
             drilldownData: [],
             activeFilters: {},
@@ -129,13 +129,13 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Upline rank 3',
+                    label: 'Silver',
                     key: 'upline',
                     placeholder: 'Username'
                 },
                 {
                     type: 'text',
-                    label: 'Upline rank 6',
+                    label: 'Double Executive',
                     key: 'upper_upline',
                     placeholder: 'Username'
                 }
@@ -152,6 +152,7 @@ export default {
     },
     methods: {
         formatNumber,
+        formatRank,
         formatDate(dateStr) {
             if (!dateStr) return '-';
             try {
@@ -326,14 +327,14 @@ export default {
                 'Coin Group': item.coinGroup || '-',
                 MM: item.mm || '-',
                 'Max coin': item.maxCoin || '-',
-                'UPLINE RANK 6': item.upper_upline || '-',
-                'UPLINE RANK 3': item.upline || '-'
+                'DOUBLE EXECUTIVE': item.upper_upline || '-',
+                'SILVER': item.upline || '-'
             }));
             JsonToPDF({
-                header: ['Username', 'Paket', 'Active 30D', 'Profit', 'credit (USDT)', 'stable capital', 'NO HP', 'coin group', 'MM', 'Max coin', 'UPLINE RANK 6', 'UPLINE RANK 3'],
+                header: ['Username', 'Paket', 'Active 30D', 'Profit', 'credit (USDT)', 'stable capital', 'NO HP', 'coin group', 'MM', 'Max coin', 'DOUBLE EXECUTIVE', 'SILVER'],
                 data: dataToExport,
-                filename: `Drilldown_TradingActivity_${this.selectedLeader}.pdf`,
-                title: `Trading Activity - Drilldown ${this.selectedLeader}`
+                filename: `Drilldown_TradingActivity_${this.formatRank(this.selectedLeader).replace(/\s+/g, '_')}.pdf`,
+                title: `Trading Activity - Drilldown ${this.formatRank(this.selectedLeader)}`
             });
         }
     },
@@ -368,7 +369,7 @@ export default {
                         </svg>
                     </button>
                     <h2 class="text-xl font-bold text-gray-800">
-                        Drilldown Potential Top Up - {{ selectedLeader }}
+                        Drilldown Potential Top Up - {{ formatRank(selectedLeader) }}
                     </h2>
                 </div>
 

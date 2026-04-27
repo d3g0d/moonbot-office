@@ -1,4 +1,5 @@
 import { fetchApi } from '../utils/api.js?v=4';
+import { formatRank } from '../utils/formatters.js';
 
 export default {
     name: 'Navigation',
@@ -119,6 +120,7 @@ export default {
         }
     },
     methods: {
+        formatRank,
         async fetchPermissions() {
             try {
                 this.isLoadingPermissions = true;
@@ -295,7 +297,7 @@ export default {
                             {{ username }}
                         </p>
                         <p class="text-xs text-white/70 truncate" :title="roleName">
-                            {{ roleName }}
+                            {{ formatRank(roleName) }}
                         </p>
                     </div>
                     

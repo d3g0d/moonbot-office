@@ -3,7 +3,7 @@ import SearchInput from '../components/SearchInput.js';
 import DataTable from '../components/DataTable.js?v=34';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
-import { formatNumber } from '../utils/formatters.js'; 
+import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=3'; 
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 export default {
     name: 'BotHealth',
@@ -62,7 +62,8 @@ export default {
                 limit: 25,
                 totalItems: 0,
                 totalPages: 0
-            }
+            },
+            leaderRankLabels
         }
     },
     computed: {
@@ -108,6 +109,7 @@ export default {
     },
     methods: {
         formatNumber,
+        formatRank,
         handlePageChange({ page, rowsPerPage }) {
             this.pagination.page = page;
             this.pagination.limit = rowsPerPage;
@@ -281,7 +283,7 @@ export default {
                         <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Leader :</span>
                         <select v-model="filters.leader" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
-                            <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ n }} ⭐</option>
+                            <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ leaderRankLabels[n] }}</option>
                         </select>
                         <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -339,7 +341,7 @@ export default {
                 >
                     <template #cell-leader="{ value, row }">
                          <span @click="selectLeader(row)" class="text-[#00A3FF] cursor-pointer hover:text-blue-600">
-                            {{ value || '-' }}
+                            {{ formatRank(value) }}
                         </span>
                     </template>
 

@@ -2,7 +2,7 @@ import MainLayout from '../layouts/MainLayout.js?v=25';
 import DataTable from '../components/DataTable.js?v=34';
 import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
-import { formatRank, formatPercentWithDays, formatNumber } from '../utils/formatters.js';
+import { formatRank, formatPercentWithDays, formatNumber } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 
 export default {
@@ -54,8 +54,8 @@ export default {
                 { key: 'credit', label: 'CREDIT', sortable: true, align: 'center', colWidth: '120px' },
                 { key: 'bot_run', label: 'BOT RUN', sortable: true, align: 'center', colWidth: '120px' },
                 { key: 'days_from_join', label: 'HARI DARI JOIN', sortable: true, align: 'center', colWidth: '120px' },
-                { key: 'upper_upline', label: 'UPLINE RANK 6', sortable: true, align: 'center', colWidth: '150px' },
-                { key: 'upline', label: 'UPLINE RANK 3', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'upline', label: 'SILVER', sortable: true, align: 'center', colWidth: '150px' },
                 { key: 'msisdn', label: 'NO HP', sortable: true, align: 'center', colWidth: '150px' }
             ]
         }
@@ -116,13 +116,13 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Upline Rank 3',
+                    label: 'Silver',
                     key: 'upline',
                     placeholder: 'Username'
                 },
                 {
                     type: 'text',
-                    label: 'Upline Rank 6',
+                    label: 'Double Executive',
                     key: 'upper_upline',
                     placeholder: 'Username'
                 }
@@ -288,7 +288,7 @@ export default {
                 const downloadUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                const filename = `Drilldown_Pipeline_${this.selectedLeader}_${this.filters.month || 'all'}.csv`;
+                const filename = `Drilldown_Pipeline_${this.formatRank(this.selectedLeader).replace(/\s+/g, '_')}_${this.filters.month || 'all'}.csv`;
                 link.setAttribute('download', filename);
                 document.body.appendChild(link);
                 link.click();
@@ -323,7 +323,7 @@ export default {
                         </svg>
                     </button>
                     <h2 class="text-lg font-bold text-gray-800">
-                        Drilldown Summary - {{ selectedLeader }}
+                        Drilldown Summary - {{ formatRank(selectedLeader) }}
                     </h2>
                 </div>
 

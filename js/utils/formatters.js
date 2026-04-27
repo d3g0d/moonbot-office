@@ -2,6 +2,20 @@
  * Common utility functions for Moonbot Office
  */
 
+export const leaderRankLabels = {
+    1: 'Member',
+    2: 'Bronze',
+    3: 'Silver',
+    4: 'Gold',
+    5: 'Executive',
+    6: 'Double Executive',
+    7: 'Triple Executive',
+    8: 'Diamond',
+    9: 'Double Diamond',
+    10: 'Triple Diamond',
+    11: 'Crown'
+};
+
 /**
  * Format number with thousands separator, auto-detect decimals, and optional prefix/suffix
  * - Thousands separator: , (comma)
@@ -111,7 +125,11 @@ export function formatPercentWithDays(percent, days, percentDecimals = 0, daysDe
  */
 export function formatRank(value) {
     if (value === null || value === undefined || value === '') return '-';
-    return `${value} ⭐`;
+    const num = parseInt(String(value).replace(/[^0-9]/g, ''));
+    if (!isNaN(num) && leaderRankLabels[num]) {
+        return leaderRankLabels[num];
+    }
+    return value;
 }
 
 /**

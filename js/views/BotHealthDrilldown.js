@@ -2,7 +2,7 @@ import MainLayout from '../layouts/MainLayout.js?v=25';
 import SearchInput from '../components/SearchInput.js';
 import DataTable from '../components/DataTable.js?v=34';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
-import { formatNumber } from '../utils/formatters.js'; 
+import { formatNumber, formatRank } from '../utils/formatters.js?v=3'; 
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
 
 export default {
@@ -55,8 +55,8 @@ export default {
                 { key: 'days_floating_streak', label: 'AVG DAYS OFF (FLOATING)', sortable: true, align: 'center' },
                 { key: 'insufficient_credit', label: 'CREDIT ≤ 3', sortable: true, align: 'center' },
                 { key: 'days_credit_streak', label: 'AVG DAYS OFF (CREDIT)', sortable: true, align: 'center' },
-                { key: 'upper_upline', label: 'UPLINE RANK 6', sortable: true, align: 'center' },
-                { key: 'upline', label: 'UPLINE RANK 3', sortable: true, align: 'center' },
+                { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center' },
+                { key: 'upline', label: 'SILVER', sortable: true, align: 'center' },
                 { key: 'step_count', label: 'MM', sortable: true, align: 'center' },
                 { key: 'max_coin', label: 'MAX COIN', sortable: true, align: 'center' },
                 { key: 'avg_buy_amount', label: 'AVG BUY AMOUNT', sortable: true, align: 'center' },
@@ -89,13 +89,13 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Upline rank 3',
+                    label: 'Silver',
                     key: 'upline',
                     placeholder: 'Username'
                 },
                 {
                     type: 'text',
-                    label: 'Upline rank 6',
+                    label: 'Double Executive',
                     key: 'upper_upline',
                     placeholder: 'Username'
                 }
@@ -122,6 +122,7 @@ export default {
     },
     methods: {
         formatNumber,
+        formatRank,
         handleDrilldownPageChange({ page, rowsPerPage }) {
             this.drilldownPagination.page = page;
             this.drilldownPagination.limit = rowsPerPage;
@@ -304,7 +305,7 @@ export default {
                 const downloadUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                const filename = `Drilldown_BotHealth_${this.leaderName}_${this.filters.date || new Date().toISOString().split('T')[0]}.csv`;
+                const filename = `Drilldown_BotHealth_${this.formatRank(this.leaderName).replace(/\s+/g, '_')}_${this.filters.date || new Date().toISOString().split('T')[0]}.csv`;
                 link.setAttribute('download', filename);
                 document.body.appendChild(link);
                 link.click();
@@ -353,7 +354,7 @@ export default {
                         </svg>
                     </button>
                     <h2 class="text-lg font-bold text-gray-900">
-                        Leader - {{ leaderName }}
+                        Leader - {{ formatRank(leaderName) }}
                     </h2>
                 </div>
 
