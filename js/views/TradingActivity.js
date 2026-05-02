@@ -5,6 +5,7 @@ import FilterDropdown from '../components/FilterDropdown.js?v=3';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatNumber, formatRank, leaderRankLabels, getDefaultDateRange } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'TradingActivity',
@@ -16,13 +17,17 @@ export default {
         DatePicker
     },
     data() {
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
+        let leaderValue = query.leader || 'All';
+        if (leaderValue !== 'All' && !leaderValue.includes('⭐')) {
+            leaderValue = leaderValue + ' ⭐';
+        }
         return {
             lastUpdated: 'Live Stats',
             filters: {
                 dateRange: query.dateRange || getDefaultDateRange(), // Stores "YYYY-MM-DD to YYYY-MM-DD"
-                vipPlan: 'All',
-                leader: 'All'
+                vipPlan: query.vipPlan || 'All',
+                leader: leaderValue
             },
             stats: [
                 { label: 'Active ≥ 30D', value: 0, isPercentage: true },
@@ -33,12 +38,12 @@ export default {
                 { label: 'Avg. Profit/user', value: 0, isCurrency: true },
                 { label: 'Potential Top Up', value: 0 }
             ],
-            searchQuery: '',
+            searchQuery: query.search || '',
             loading: false,
             error: null,
             pagination: {
-                page: 1,
-                limit: 25,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 25,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -112,12 +117,14 @@ export default {
         handlePageChange({ page, rowsPerPage }) {
             this.pagination.page = page;
             this.pagination.limit = rowsPerPage;
+            this.syncQueryParams();
             this.fetchLeaders();
         },
         handleSortChange({ key, order }) {
             this.sort.sortBy = key;
             this.sort.sortDir = order;
             this.pagination.page = 1;
+            this.syncQueryParams();
             this.fetchLeaders();
         },
         formatStat(stat) {
@@ -222,13 +229,40 @@ export default {
             }
         },
         selectLeader(leaderName) {
+            const parentState = {
+                _p_leader: this.filters.leader !== 'All' ? this.filters.leader.replace(' ⭐', '') : 'All',
+                _p_vipPlan: this.filters.vipPlan,
+                _p_dateRange: this.filters.dateRange,
+                _p_sort_by: this.sort.sortBy,
+                _p_sort_dir: this.sort.sortDir,
+                _p_page: this.pagination.page,
+                _p_limit: this.pagination.limit,
+                _p_search: this.searchQuery || ''
+            };
             this.$router.push({
                 name: 'TradingActivityDrilldown',
-                query: {
+                query: encryptQuery({
                     leader: leaderName,
-                    dateRange: this.filters.dateRange
-                }
+                    dateRange: this.filters.dateRange,
+                    ...parentState
+                })
             });
+        },
+        syncQueryParams() {
+            const query = {};
+            if (this.filters.leader && this.filters.leader !== 'All') {
+                query.leader = this.filters.leader.replace(' ⭐', '');
+            }
+            if (this.filters.vipPlan && this.filters.vipPlan !== 'All') query.vipPlan = this.filters.vipPlan;
+            if (this.filters.dateRange) query.dateRange = this.filters.dateRange;
+            if (this.sort.sortBy && this.sort.sortBy !== 'potential_top_up') query.sort_by = this.sort.sortBy;
+            if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.sort.sortBy === 'potential_top_up' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.pagination.page > 1) query.page = this.pagination.page;
+            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.searchQuery) query.search = this.searchQuery;
+            
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         }
     },
     watch: {
@@ -236,6 +270,7 @@ export default {
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchLeaders();
             }, 500);
         },
@@ -243,6 +278,7 @@ export default {
             deep: true,
             handler() {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchSnapshot();
                 this.fetchLeaders();
             }

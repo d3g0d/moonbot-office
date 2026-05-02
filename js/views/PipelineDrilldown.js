@@ -4,6 +4,7 @@ import SearchInput from '../components/SearchInput.js';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import { formatRank, formatPercentWithDays, formatNumber } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'PipelineDrilldown',
@@ -14,7 +15,7 @@ export default {
         FilterDropdown
     },
     data() {
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
         return {
             selectedLeader: query.leader || '',
             filters: {
@@ -55,7 +56,7 @@ export default {
                 { key: 'bot_run', label: 'BOT RUN', sortable: true, align: 'center', colWidth: '120px' },
                 { key: 'days_from_join', label: 'HARI DARI JOIN', sortable: true, align: 'center', colWidth: '120px' },
                 { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center', colWidth: '150px' },
-                { key: 'upline', label: 'SILVER', sortable: true, align: 'center', colWidth: '150px' },
+                { key: 'upline', label: 'GOLD', sortable: true, align: 'center', colWidth: '150px' },
                 { key: 'msisdn', label: 'NO HP', sortable: true, align: 'center', colWidth: '150px' }
             ]
         }
@@ -116,7 +117,7 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Silver',
+                    label: 'GOLD',
                     key: 'upline',
                     placeholder: 'Username'
                 },
@@ -240,7 +241,33 @@ export default {
             }
         },
         goBack() {
-            this.$router.push('/pipeline');
+            const query = decryptQuery(this.$route.query);
+            const parentQuery = {};
+            if (query._p_leader && query._p_leader !== 'All') parentQuery.leader = query._p_leader;
+            if (query._p_vipPlan && query._p_vipPlan !== '') parentQuery.vipPlan = query._p_vipPlan;
+            if (query.month) parentQuery.month = query.month;
+            if (query._p_sort_by) parentQuery.sort_by = query._p_sort_by;
+            if (query._p_sort_dir) parentQuery.sort_dir = query._p_sort_dir;
+            if (query._p_page && query._p_page !== '1') parentQuery.page = query._p_page;
+            if (query._p_limit && query._p_limit !== '25') parentQuery.limit = query._p_limit;
+            if (query._p_search) parentQuery.search = query._p_search;
+
+            this.$router.push({ name: 'Pipeline', query: encryptQuery(parentQuery) });
+        },
+        syncQueryParams() {
+            const query = { ...decryptQuery(this.$route.query) };
+            if (this.searchQuery) query.search = this.searchQuery;
+            if (this.filters.month) query.month = this.filters.month;
+            if (this.drilldownSort.sortBy) query.sort_by = this.drilldownSort.sortBy;
+            if (this.drilldownSort.sortDir) query.sort_dir = this.drilldownSort.sortDir;
+            if (this.drilldownPagination.page > 1) query.page = this.drilldownPagination.page;
+            
+            // Sync active filters from dropdown
+            if (this.activeFilters.vipLevel) query.vipLevel = this.activeFilters.vipLevel;
+            if (this.activeFilters.upline) query.upline = this.activeFilters.upline;
+            if (this.activeFilters.upper_upline) query.upper_upline = this.activeFilters.upper_upline;
+
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         },
         toggleFilter() {
             this.isFilterOpen = !this.isFilterOpen;
@@ -307,6 +334,31 @@ export default {
                 this.drilldownPagination.page = 1;
                 this.fetchDrilldown();
             }, 500);
+        }
+    },
+    watch: {
+        searchQuery() {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchDrilldown();
+            }, 500);
+        },
+        filters: {
+            deep: true,
+            handler() {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchSummary();
+                this.fetchDrilldown();
+            }
+        },
+        activeFilters: {
+            deep: true,
+            handler() {
+                this.syncQueryParams();
+            }
         }
     },
     template: `

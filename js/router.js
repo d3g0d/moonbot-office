@@ -20,42 +20,42 @@ const routes = [
     {
         path: '/access-management',
         name: 'AccessManagement',
-        component: () => import('./views/AccessManagement.js?v=9') // Access Management page
+        component: () => import('./views/AccessManagement.js?v=15') // Access Management page
     },
     {
         path: '/bot-health',
         name: 'BotHealth',
-        component: () => import('./views/BotHealth.js?v=9') // Bot Health page
+        component: () => import('./views/BotHealth.js?v=15') // Bot Health page
     },
     {
         path: '/bot-health/drilldown',
         name: 'BotHealthDrilldown',
-        component: () => import('./views/BotHealthDrilldown.js?v=1') // Bot Health Drilldown page
+        component: () => import('./views/BotHealthDrilldown.js?v=7') // Bot Health Drilldown page
     },
     {
         path: '/trading-activity',
         name: 'TradingActivity',
-        component: () => import('./views/TradingActivity.js?v=11') // Trading Activity page
+        component: () => import('./views/TradingActivity.js?v=17') // Trading Activity page
     },
     {
         path: '/trading-activity/drilldown',
         name: 'TradingActivityDrilldown',
-        component: () => import('./views/TradingActivityDrilldown.js?v=2') // Trading Activity Drilldown page
+        component: () => import('./views/TradingActivityDrilldown.js?v=8') // Trading Activity Drilldown page
     },
     {
         path: '/pipeline',
         name: 'Pipeline',
-        component: () => import('./views/Pipeline.js?v=4') // Pipeline page
+        component: () => import('./views/Pipeline.js?v=11') // Pipeline page
     },
     {
         path: '/pipeline/drilldown',
         name: 'PipelineDrilldown',
-        component: () => import('./views/PipelineDrilldown.js?v=1') // Pipeline Drilldown page
+        component: () => import('./views/PipelineDrilldown.js?v=7') // Pipeline Drilldown page
     },
     {
         path: '/change-tracker',
         name: 'ChangeTracker',
-        component: () => import('./views/ChangeTracker.js?v=1') // Change Tracker page
+        component: () => import('./views/ChangeTracker.js?v=10') // Change Tracker page
     },
     // Add more routes here as needed
 ];

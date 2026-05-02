@@ -5,6 +5,7 @@ import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=3'; 
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
 export default {
     name: 'BotHealth',
     components: {
@@ -15,13 +16,17 @@ export default {
         DatePicker
     },
     data() {
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
+        let leaderValue = query.leader || 'All';
+        if (leaderValue !== 'All' && !leaderValue.includes('⭐')) {
+            leaderValue = leaderValue + ' ⭐';
+        }
         return {
-            searchQuery: '',
+            searchQuery: query.search || '',
             filters: {
-                date: '', // Stores YYYY-MM-DD
-                leader: 'All',
-                vipPlan: 'All'
+                date: query.date || '', // Stores YYYY-MM-DD
+                leader: leaderValue,
+                vipPlan: query.vip_plan || 'All'
             },
             sort: {
                 sortBy: query.sort_by || 'health_index',
@@ -30,7 +35,7 @@ export default {
             loading: false,
             error: null,
             isFilterOpen: false,
-            activeFilters: {},
+            activeFilters: query.vip_plan ? { vipPlan: query.vip_plan } : {},
             lastUpdated: 'Calculating...',
             datePickerConfig: {
                 dateFormat: 'Y-m-d',
@@ -58,8 +63,8 @@ export default {
                 health_index: 0
             },
             pagination: {
-                page: 1,
-                limit: 25,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 25,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -113,12 +118,14 @@ export default {
         handlePageChange({ page, rowsPerPage }) {
             this.pagination.page = page;
             this.pagination.limit = rowsPerPage;
+            this.syncQueryParams();
             this.fetchBotHealth();
         },
         handleSortChange({ key, order }) {
             this.sort.sortBy = key;
             this.sort.sortDir = order;
             this.pagination.page = 1;
+            this.syncQueryParams();
             this.fetchBotHealth();
         },
         async fetchSummary() {
@@ -132,8 +139,8 @@ export default {
                     params.append('rank', rank);
                 }
 
-                if (this.activeFilters.vipPlan && this.activeFilters.vipPlan !== '') {
-                    params.append('plan', this.activeFilters.vipPlan);
+                if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
+                    params.append('plan', this.filters.vipPlan);
                 }
                 
                 if (params.toString()) {
@@ -179,8 +186,8 @@ export default {
                     const rank = this.filters.leader.split(' ')[0];
                     params.append('rank', rank);
                 }
-                if (this.activeFilters.vipPlan && this.activeFilters.vipPlan !== '') {
-                    params.append('plan', this.activeFilters.vipPlan);
+                if (this.filters.vipPlan && this.filters.vipPlan !== 'All') {
+                    params.append('plan', this.filters.vipPlan);
                 }
 
                 if (this.sort.sortBy) {
@@ -220,13 +227,39 @@ export default {
             }
         },
         selectLeader(row) {
+            const parentState = {
+                _p_leader: this.filters.leader !== 'All' ? this.filters.leader.replace(' ⭐', '') : 'All',
+                _p_vip_plan: this.filters.vipPlan,
+                _p_sort_by: this.sort.sortBy,
+                _p_sort_dir: this.sort.sortDir,
+                _p_page: this.pagination.page,
+                _p_limit: this.pagination.limit,
+                _p_search: this.searchQuery || ''
+            };
             this.$router.push({
                 name: 'BotHealthDrilldown',
-                query: {
+                query: encryptQuery({
                     leader: row.leader,
-                    date: this.filters.date
-                }
+                    date: this.filters.date,
+                    ...parentState
+                })
             });
+        },
+        syncQueryParams() {
+            const query = {};
+            if (this.filters.leader && this.filters.leader !== 'All') {
+                query.leader = this.filters.leader.replace(' ⭐', '');
+            }
+            if (this.filters.date) query.date = this.filters.date;
+            if (this.sort.sortBy && this.sort.sortBy !== 'health_index') query.sort_by = this.sort.sortBy;
+            if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.sort.sortBy === 'health_index' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.pagination.page > 1) query.page = this.pagination.page;
+            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.filters.vipPlan && this.filters.vipPlan !== 'All') query.vip_plan = this.filters.vipPlan;
+            if (this.searchQuery) query.search = this.searchQuery;
+            
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         },
         getHealthIndexClass(value) {
             const val = parseFloat(value);
@@ -245,8 +278,9 @@ export default {
         },
         applyFilters() {
             this.isFilterOpen = false;
-            this.fetchSummary();
             this.pagination.page = 1;
+            this.syncQueryParams();
+            this.fetchSummary();
             this.fetchBotHealth();
         }
     },
@@ -255,6 +289,7 @@ export default {
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchBotHealth();
             }, 500);
         },
@@ -262,6 +297,7 @@ export default {
             deep: true,
             handler() {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchSummary();
                 this.fetchBotHealth();
             }
@@ -278,12 +314,40 @@ export default {
 
             <!-- Global Filters -->
             <div class="flex flex-wrap items-center gap-3 mb-8">
+                <!-- Date Filter -->
+                <div class="relative w-full sm:w-auto">
+                    <DatePicker v-model="filters.date" :config="datePickerConfig">
+                        <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
+                            <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Date:</span>
+                            <span class="px-4 pb-2 sm:py-2 sm:pl-2 pr-12 text-sm font-medium min-w-[120px] leading-relaxed">{{ filters.date ? filters.date : 'Today' }}</span>
+                            <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                        </div>
+                    </DatePicker>
+                </div>
+                <!-- Leader Filter -->
                 <div class="relative w-full sm:w-auto">
                     <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5">
                         <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Leader :</span>
                         <select v-model="filters.leader" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
                             <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ leaderRankLabels[n] }}</option>
+                        </select>
+                        <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                <!-- VIP Plan Filter -->
+                <div class="relative w-full sm:w-auto">
+                    <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5">
+                        <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">VIP Plan :</span>
+                        <select v-model="filters.vipPlan" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
+                            <option value="All">All</option>
+                            <option value="1">B+</option>
+                            <option value="2">A+</option>
+                            <option value="3">P+</option>
                         </select>
                         <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>

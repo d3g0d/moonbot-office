@@ -5,6 +5,7 @@ import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatRank, formatPercentWithDays, formatNumber, leaderRankLabels } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'Pipeline',
@@ -16,14 +17,18 @@ export default {
         DatePicker
     },
     data() {
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
+        let leaderValue = query.leader || 'All';
+        if (leaderValue !== 'All' && !leaderValue.includes('⭐')) {
+            leaderValue = leaderValue + ' ⭐';
+        }
         return {
             loading: false,
             error: null,
             filters: {
-                month: new Date().toISOString().slice(0, 7), // YYYY-MM
-                leader: 'All',
-                vipPlan: ''
+                month: query.month || new Date().toISOString().slice(0, 7), // YYYY-MM
+                leader: leaderValue,
+                vipPlan: query.vipPlan || ''
             },
             monthPickerConfig: {
                 plugins: [
@@ -55,7 +60,7 @@ export default {
                     bot_run: 0
                 }
             },
-            searchQuery: '',
+            searchQuery: query.search || '',
             columns: [
                 { key: 'leader', label: 'LEADER', sortable: true , thClass: 'sticky top-0 left-0 bg-white z-40 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words',
                     class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words'},
@@ -68,8 +73,8 @@ export default {
             ],
             pipelineData: [],
             pagination: {
-                page: 1,
-                limit: 25,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 25,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -102,12 +107,15 @@ export default {
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchSummary();
                 this.fetchLeaders();
             }, 500);
         },
         filters: {
             handler() {
+                this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchSummary();
                 this.fetchLeaders();
             },
@@ -125,12 +133,14 @@ export default {
         handlePageChange({ page, rowsPerPage }) {
             this.pagination.page = page;
             this.pagination.limit = rowsPerPage;
+            this.syncQueryParams();
             this.fetchLeaders();
         },
         handleSortChange({ key, order }) {
             this.sort.sortBy = key;
             this.sort.sortDir = order;
             this.pagination.page = 1;
+            this.syncQueryParams();
             this.fetchLeaders();
         },
         async fetchSummary() {
@@ -223,13 +233,39 @@ export default {
             }
         },
         selectLeader(leaderName) {
+            const parentState = {
+                _p_leader: this.filters.leader !== 'All' ? this.filters.leader.replace(' ⭐', '') : 'All',
+                _p_vipPlan: this.filters.vipPlan,
+                _p_sort_by: this.sort.sortBy,
+                _p_sort_dir: this.sort.sortDir,
+                _p_page: this.pagination.page,
+                _p_limit: this.pagination.limit,
+                _p_search: this.searchQuery || ''
+            };
             this.$router.push({
                 name: 'PipelineDrilldown',
-                query: {
+                query: encryptQuery({
                     leader: leaderName,
-                    month: this.filters.month
-                }
+                    month: this.filters.month,
+                    ...parentState
+                })
             });
+        },
+        syncQueryParams() {
+            const query = {};
+            if (this.filters.leader && this.filters.leader !== 'All') {
+                query.leader = this.filters.leader.replace(' ⭐', '');
+            }
+            if (this.filters.vipPlan && this.filters.vipPlan !== '') query.vipPlan = this.filters.vipPlan;
+            if (this.filters.month) query.month = this.filters.month;
+            if (this.sort.sortBy && this.sort.sortBy !== 'bot_run_pct') query.sort_by = this.sort.sortBy;
+            if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.sort.sortBy === 'bot_run_pct' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.pagination.page > 1) query.page = this.pagination.page;
+            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.searchQuery) query.search = this.searchQuery;
+            
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         },
         formatDate(dateString) {
             if (!dateString) return '-';

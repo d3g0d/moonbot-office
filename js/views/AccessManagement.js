@@ -5,6 +5,7 @@ import ActionDropdown from '../components/ActionDropdown.js?v=2';
 import Modal from '../components/Modal.js?v=2';
 import FormInput from '../components/FormInput.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'AccessManagement',
@@ -17,8 +18,9 @@ export default {
         FormInput
     },
     data() {
+        const query = decryptQuery(this.$route.query);
         return {
-            searchQuery: '',
+            searchQuery: query.search || '',
             showModal: false,
             editingUser: null,
             loading: false,
@@ -26,6 +28,7 @@ export default {
             columns: [
                 { key: 'username', label: 'USERNAME', sortable: true, thClass: 'sticky top-0 left-0 bg-white z-40 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words',
                     class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words'},
+                { key: 'moonbot_username', label: 'MOONBOT USERNAME', sortable: true },
                 { key: 'role_label', label: 'ROLES', align: 'center' },
                 { key: 'last_login', label: 'LAST LOGIN', sortable: true }
             ],
@@ -50,6 +53,7 @@ export default {
             },
             formData: {
                 username: '',
+                moonbot_username: '',
                 country_code: '62',
                 phone_number: '',
                 role_id: null,
@@ -79,8 +83,14 @@ export default {
             const query = this.searchQuery.toLowerCase();
             return admins.filter(user =>
                 user.username?.toLowerCase().includes(query) ||
+                user.moonbot_username?.toLowerCase().includes(query) ||
                 user.role_label?.toLowerCase().includes(query)
             );
+        }
+    },
+    watch: {
+        searchQuery() {
+            this.syncQueryParams();
         }
     },
     mounted() {
@@ -156,6 +166,7 @@ export default {
             this.editingUser = null;
             this.formData = { 
                 username: '', 
+                moonbot_username: '',
                 country_code: '62',
                 phone_number: '',
                 role_id: this.roles.find(r => r.name === 'admin')?.id || this.roles[0]?.id || null, 
@@ -183,6 +194,7 @@ export default {
 
             this.formData = { 
                 username: user.username, 
+                moonbot_username: user.moonbot_username || '',
                 country_code: countryCode,
                 phone_number: phoneNumber,
                 role_id: user.role_id, 
@@ -194,7 +206,7 @@ export default {
         closeModal() {
             this.showModal = false;
             this.editingUser = null;
-            this.formData = { username: '', country_code: '62', phone_number: '', role_id: null, password: '', is_active: 1 };
+            this.formData = { username: '', moonbot_username: '', country_code: '62', phone_number: '', role_id: null, password: '', is_active: 1 };
         },
         openResetModal(user) {
             this.resetUser = user;
@@ -227,6 +239,7 @@ export default {
                 
                 const body = {
                     username: this.formData.username,
+                    moonbot_username: this.formData.moonbot_username,
                     phone: `${this.formData.country_code}${this.formData.phone_number}`,
                     role_id: this.formData.role_id,
                     is_active: this.formData.is_active
@@ -324,6 +337,11 @@ export default {
                     this.deleteAdmin(row);
                     break;
             }
+        },
+        syncQueryParams() {
+            const query = {};
+            if (this.searchQuery) query.search = this.searchQuery;
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         }
     },
     template: `
@@ -410,6 +428,10 @@ export default {
                             v-model="formData.username"
                             label="Username"
                             :required="true"
+                        />
+                        <FormInput 
+                            v-model="formData.moonbot_username"
+                            label="Moonbot Username"
                         />
                        
                         

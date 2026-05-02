@@ -4,6 +4,7 @@ import SearchInput from '../components/SearchInput.js';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
 import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=3';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'ChangeTracker',
@@ -14,13 +15,15 @@ export default {
         DatePicker
     },
     data() {
+        const query = decryptQuery(this.$route.query);
+        let leaderValue = query.leader || 'All';
         return {
             loading: false,
             error: null,
             filters: {
-                month: new Date().toISOString().slice(0, 7), // YYYY-MM
-                leader: 'All',
-                vipPlan: 'All'
+                month: query.month || new Date().toISOString().slice(0, 7), // YYYY-MM
+                leader: leaderValue,
+                vipPlan: query.vipPlan || 'All'
             },
             monthPickerConfig: {
                 plugins: [
@@ -34,18 +37,18 @@ export default {
                 ].filter(Boolean)
             },
             searchQuery: '',
-            internalSearchQuery: '',
+            internalSearchQuery: query.search || '',
             trackerData: [],
             monthLabels: [],
             pagination: {
-                page: 1,
-                limit: 25,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 25,
                 totalItems: 0,
                 totalPages: 0
             },
             sort: {
-                sortBy: 'increment_0',
-                sortDir: 'desc'
+                sortBy: query.sort_by || 'increment_0',
+                sortDir: query.sort_dir || 'desc'
             },
             leaderRankLabels
         }
@@ -86,6 +89,7 @@ export default {
         filters: {
             handler() {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchChangeTracker();
             },
             deep: true
@@ -94,6 +98,7 @@ export default {
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.pagination.page = 1;
+                this.syncQueryParams();
                 this.fetchChangeTracker();
             }, 500);
         }
@@ -123,8 +128,7 @@ export default {
                 }
 
                 if (this.filters.leader && this.filters.leader !== 'All') {
-                    const rank = this.filters.leader.split(' ')[0];
-                    params.append('rank', rank);
+                    params.append('rank', this.filters.leader);
                 }
 
                 const response = await fetchApi(`/pipeline/change-tracker?${params.toString()}`);
@@ -150,13 +154,31 @@ export default {
         handlePageChange({ page, rowsPerPage }) {
             this.pagination.page = page;
             this.pagination.limit = rowsPerPage;
+            this.syncQueryParams();
             this.fetchChangeTracker();
         },
         handleSortChange({ key, order }) {
             this.sort.sortBy = key;
             this.sort.sortDir = order;
             this.pagination.page = 1;
+            this.syncQueryParams();
             this.fetchChangeTracker();
+        },
+        syncQueryParams() {
+            const query = {};
+            if (this.filters.leader && this.filters.leader !== 'All') {
+                query.leader = this.filters.leader;
+            }
+            if (this.filters.vipPlan && this.filters.vipPlan !== 'All') query.vipPlan = this.filters.vipPlan;
+            if (this.filters.month) query.month = this.filters.month;
+            if (this.sort.sortBy && this.sort.sortBy !== 'increment_0') query.sort_by = this.sort.sortBy;
+            if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.sort.sortBy === 'increment_0' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
+            if (this.pagination.page > 1) query.page = this.pagination.page;
+            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.internalSearchQuery) query.search = this.internalSearchQuery;
+            
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         },
         getBotRunClass(value) {
             const val = parseFloat(value);
@@ -190,7 +212,7 @@ export default {
                         <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Leader :</span>
                         <select v-model="filters.leader" class="appearance-none bg-transparent px-4 pb-2 sm:py-2 sm:pl-2 pr-10 text-sm font-medium focus:outline-none cursor-pointer min-w-[100px]">
                             <option value="All">All</option>
-                            <option v-for="n in 11" :key="n" :value="n + ' ⭐'">{{ leaderRankLabels[n] }}</option>
+                            <option v-for="n in 11" :key="n" :value="n">{{ leaderRankLabels[n] }}</option>
                         </select>
                         <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>

@@ -5,6 +5,8 @@ import FilterDropdown from '../components/FilterDropdown.js?v=3';
 import DatePicker from '../components/DatePicker.js?v=2';
 import { formatNumber, formatRank, JsonToCSV, JsonToPDF, getDefaultDateRange } from '../utils/formatters.js?v=3';
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=1';
+
 
 export default {
     name: 'TradingActivityDrilldown',
@@ -16,7 +18,7 @@ export default {
         DatePicker
     },
     data() {
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
         return {
             selectedLeader: query.leader || '',
             filters: {
@@ -88,7 +90,7 @@ export default {
                 { key: 'mm', label: 'MM', sortable: true, align: 'center', colWidth: '100px' },
                 { key: 'maxCoin', label: 'Max coin', sortable: true, align: 'center', colWidth: '100px' },
                 { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center', colWidth: '150px' },
-                { key: 'upline', label: 'SILVER', sortable: true, align: 'center', colWidth: '150px' }
+                { key: 'upline', label: 'GOLD', sortable: true, align: 'center', colWidth: '150px' }
             ],
             drilldownData: [],
             activeFilters: {},
@@ -129,7 +131,7 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Silver',
+                    label: 'GOLD',
                     key: 'upline',
                     placeholder: 'Username'
                 },
@@ -258,8 +260,36 @@ export default {
                 this.drilldownLoading = false;
             }
         },
+        syncQueryParams() {
+            const query = { ...decryptQuery(this.$route.query) };
+            if (this.searchQuery) query.search = this.searchQuery;
+            if (this.filters.dateRange) query.dateRange = this.filters.dateRange;
+            if (this.filters.potentialTopUp !== true) query.potentialTopUp = this.filters.potentialTopUp;
+            if (this.drilldownSort.sortBy) query.sort_by = this.drilldownSort.sortBy;
+            if (this.drilldownSort.sortDir) query.sort_dir = this.drilldownSort.sortDir;
+            if (this.drilldownPagination.page > 1) query.page = this.drilldownPagination.page;
+            
+            // Sync active filters from dropdown
+            if (this.activeFilters.funds) query.funds = this.activeFilters.funds;
+            if (this.activeFilters.creditStatus) query.creditStatus = this.activeFilters.creditStatus;
+            if (this.activeFilters.upline) query.upline = this.activeFilters.upline;
+            if (this.activeFilters.upper_upline) query.upper_upline = this.activeFilters.upper_upline;
+
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
+        },
         goBack() {
-            this.$router.push('/trading-activity');
+            const query = decryptQuery(this.$route.query);
+            const parentQuery = {};
+            if (query._p_leader && query._p_leader !== 'All') parentQuery.leader = query._p_leader;
+            if (query._p_vipPlan && query._p_vipPlan !== 'All') parentQuery.vipPlan = query._p_vipPlan;
+            if (query.dateRange) parentQuery.dateRange = query.dateRange;
+            if (query._p_sort_by) parentQuery.sort_by = query._p_sort_by;
+            if (query._p_sort_dir) parentQuery.sort_dir = query._p_sort_dir;
+            if (query._p_page && query._p_page !== '1') parentQuery.page = query._p_page;
+            if (query._p_limit && query._p_limit !== '25') parentQuery.limit = query._p_limit;
+            if (query._p_search) parentQuery.search = query._p_search;
+
+            this.$router.push({ name: 'TradingActivity', query: encryptQuery(parentQuery) });
         },
         applyFilters() {
             this.isFilterOpen = false;
@@ -328,10 +358,10 @@ export default {
                 MM: item.mm || '-',
                 'Max coin': item.maxCoin || '-',
                 'DOUBLE EXECUTIVE': item.upper_upline || '-',
-                'SILVER': item.upline || '-'
+                'GOLD': item.upline || '-'
             }));
             JsonToPDF({
-                header: ['Username', 'Paket', 'Active 30D', 'Profit', 'credit (USDT)', 'stable capital', 'NO HP', 'coin group', 'MM', 'Max coin', 'DOUBLE EXECUTIVE', 'SILVER'],
+                header: ['Username', 'Paket', 'Active 30D', 'Profit', 'credit (USDT)', 'stable capital', 'NO HP', 'coin group', 'MM', 'Max coin', 'DOUBLE EXECUTIVE', 'GOLD'],
                 data: dataToExport,
                 filename: `Drilldown_TradingActivity_${this.formatRank(this.selectedLeader).replace(/\s+/g, '_')}.pdf`,
                 title: `Trading Activity - Drilldown ${this.formatRank(this.selectedLeader)}`
@@ -353,6 +383,31 @@ export default {
         'filters.potentialTopUp'() {
             this.drilldownPagination.page = 1;
             this.fetchDrilldown();
+        }
+    },
+    watch: {
+        searchQuery() {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchDrilldown();
+            }, 500);
+        },
+        filters: {
+            deep: true,
+            handler() {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchSnapshot();
+                this.fetchDrilldown();
+            }
+        },
+        activeFilters: {
+            deep: true,
+            handler() {
+                this.syncQueryParams();
+            }
         }
     },
     template: `

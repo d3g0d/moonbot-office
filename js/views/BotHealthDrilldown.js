@@ -4,6 +4,7 @@ import DataTable from '../components/DataTable.js?v=34';
 import FilterDropdown from '../components/FilterDropdown.js?v=4';
 import { formatNumber, formatRank } from '../utils/formatters.js?v=3'; 
 import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
+import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=1';
 
 export default {
     name: 'BotHealthDrilldown',
@@ -15,7 +16,7 @@ export default {
     },
     data() {
         // Initialize from route query
-        const query = this.$route.query;
+        const query = decryptQuery(this.$route.query);
         return {
             leaderName: query.leader || '',
             searchQuery: '',
@@ -56,7 +57,7 @@ export default {
                 { key: 'insufficient_credit', label: 'CREDIT ≤ 3', sortable: true, align: 'center' },
                 { key: 'days_credit_streak', label: 'AVG DAYS OFF (CREDIT)', sortable: true, align: 'center' },
                 { key: 'upper_upline', label: 'DOUBLE EXECUTIVE', sortable: true, align: 'center' },
-                { key: 'upline', label: 'SILVER', sortable: true, align: 'center' },
+                { key: 'upline', label: 'GOLD', sortable: true, align: 'center' },
                 { key: 'step_count', label: 'MM', sortable: true, align: 'center' },
                 { key: 'max_coin', label: 'MAX COIN', sortable: true, align: 'center' },
                 { key: 'avg_buy_amount', label: 'AVG BUY AMOUNT', sortable: true, align: 'center' },
@@ -89,7 +90,7 @@ export default {
                 },
                 {
                     type: 'text',
-                    label: 'Silver',
+                    label: 'GOLD',
                     key: 'upline',
                     placeholder: 'Username'
                 },
@@ -248,8 +249,35 @@ export default {
                 return dateString;
             }
         },
+        syncQueryParams() {
+            const query = { ...decryptQuery(this.$route.query) };
+            if (this.searchQuery) query.search = this.searchQuery;
+            if (this.filters.date) query.date = this.filters.date;
+            if (this.drilldownSort.sortBy) query.sort_by = this.drilldownSort.sortBy;
+            if (this.drilldownSort.sortDir) query.sort_dir = this.drilldownSort.sortDir;
+            if (this.drilldownPagination.page > 1) query.page = this.drilldownPagination.page;
+            
+            // Sync active filters from dropdown
+            if (this.activeFilters.funds) query.funds = this.activeFilters.funds;
+            if (this.activeFilters.creditStatus) query.creditStatus = this.activeFilters.creditStatus;
+            if (this.activeFilters.upline) query.upline = this.activeFilters.upline;
+            if (this.activeFilters.upper_upline) query.upper_upline = this.activeFilters.upper_upline;
+
+            this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
+        },
         goBack() {
-            this.$router.push('/bot-health');
+            const query = decryptQuery(this.$route.query);
+            const parentQuery = {};
+            if (query._p_leader && query._p_leader !== 'All') parentQuery.leader = query._p_leader;
+            if (query.date) parentQuery.date = query.date;
+            if (query._p_sort_by) parentQuery.sort_by = query._p_sort_by;
+            if (query._p_sort_dir) parentQuery.sort_dir = query._p_sort_dir;
+            if (query._p_page && query._p_page !== '1') parentQuery.page = query._p_page;
+            if (query._p_limit && query._p_limit !== '25') parentQuery.limit = query._p_limit;
+            if (query._p_vip_plan && query._p_vip_plan !== 'All') parentQuery.vip_plan = query._p_vip_plan;
+            if (query._p_search) parentQuery.search = query._p_search;
+
+            this.$router.push({ name: 'BotHealth', query: encryptQuery(parentQuery) });
         },
         getHealthIndexClass(value) {
             const val = parseFloat(value);
@@ -324,6 +352,31 @@ export default {
                 this.drilldownPagination.page = 1;
                 this.fetchDrilldown();
             }, 500);
+        }
+    },
+    watch: {
+        searchQuery() {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchDrilldown();
+            }, 500);
+        },
+        filters: {
+            deep: true,
+            handler() {
+                this.drilldownPagination.page = 1;
+                this.syncQueryParams();
+                this.fetchSummary();
+                this.fetchDrilldown();
+            }
+        },
+        activeFilters: {
+            deep: true,
+            handler() {
+                this.syncQueryParams();
+            }
         }
     },
     template: `
