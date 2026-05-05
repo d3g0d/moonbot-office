@@ -6,6 +6,7 @@ import Modal from '../components/Modal.js?v=2';
 import FormInput from '../components/FormInput.js?v=2';
 import { fetchApi } from '../utils/api.js?v=4';
 import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
+import { countryCodes } from '../data/country.js';
 
 export default {
     name: 'AccessManagement',
@@ -60,23 +61,33 @@ export default {
                 password: '',
                 is_active: 1
             },
-            countryCodes: [
-                { code: '62', name: 'Indonesia', flag: '🇮🇩' },
-                { code: '60', name: 'Malaysia', flag: '🇲🇾' },
-                { code: '65', name: 'Singapore', flag: '🇸🇬' },
-                { code: '66', name: 'Thailand', flag: '🇹🇭' },
-                { code: '84', name: 'Vietnam', flag: '🇻🇳' },
-                { code: '63', name: 'Philippines', flag: '🇵🇭' },
-                { code: '1', name: 'USA/Canada', flag: '🇺🇸' },
-                { code: '44', name: 'UK', flag: '🇬🇧' },
-                { code: '61', name: 'Australia', flag: '🇦🇺' },
-                { code: '81', name: 'Japan', flag: '🇯🇵' },
-                { code: '82', name: 'South Korea', flag: '🇰🇷' },
-                { code: '86', name: 'China', flag: '🇨🇳' }
-            ]
+            moonbotUserSearch: '',
+            moonbotUserOptions: [],
+            isSearchingMoonbotUsers: false,
+            showMoonbotUserDropdown: false,
+            moonbotSearchTimeout: null,
+            moonbotUserStartPage: 1,
+            moonbotUserEndPage: 1,
+            moonbotUserTotalPages: 1,
+            isLoadingMoreMoonbotUsers: false,
+            isLoadingPrevMoonbotUsers: false,
+            countryCodes: countryCodes,
+            showCountryDropdown: false,
+            countrySearch: ''
         }
     },
     computed: {
+        selectedCountryFlag() {
+            const country = this.countryCodes.find(c => c.code === this.formData.country_code);
+            return country ? country.flag : '🏳️';
+        },
+        filteredCountryCodes() {
+            if (!this.countrySearch) return this.countryCodes;
+            const s = this.countrySearch.toLowerCase();
+            return this.countryCodes.filter(c => 
+                c.name.toLowerCase().includes(s) || c.code.includes(s)
+            );
+        },
         filteredUsers() {
             const admins = Array.isArray(this.admins) ? this.admins : [];
             if (!this.searchQuery) return admins;
@@ -91,6 +102,18 @@ export default {
     watch: {
         searchQuery() {
             this.syncQueryParams();
+        },
+        moonbotUserSearch(newVal) {
+            // Ignore if it matches the form data (selected)
+            if (this.formData.moonbot_username === newVal) return;
+            
+            // Sync form data with raw input
+            this.formData.moonbot_username = newVal;
+            
+            clearTimeout(this.moonbotSearchTimeout);
+            this.moonbotSearchTimeout = setTimeout(() => {
+                this.fetchMoonbotUsers(newVal || '', null, true);
+            }, 500);
         }
     },
     mounted() {
@@ -98,6 +121,109 @@ export default {
         this.fetchRoles();
     },
     methods: {
+        async fetchMoonbotUsers(search, direction = null, showDropdown = false) {
+            if (this.isLoadingMoreMoonbotUsers || this.isLoadingPrevMoonbotUsers || this.isSearchingMoonbotUsers) return;
+
+            let targetPage = 1;
+
+            if (direction === 'next') {
+                this.isLoadingMoreMoonbotUsers = true;
+                targetPage = this.moonbotUserEndPage + 1;
+            } else if (direction === 'prev') {
+                this.isLoadingPrevMoonbotUsers = true;
+                targetPage = this.moonbotUserStartPage - 1;
+            } else {
+                this.isSearchingMoonbotUsers = true;
+                this.moonbotUserStartPage = 1;
+                this.moonbotUserEndPage = 1;
+                targetPage = 1;
+            }
+
+            try {
+                const response = await fetchApi(`/moonbot-users?search=${encodeURIComponent(search)}&page=${targetPage}&limit=25`);
+                const responseData = response.data || {};
+                const items = Array.isArray(responseData) ? responseData : (responseData.users || responseData.data || []);
+                const newOptions = items.map(i => i.username || i.moonbot_username || i);
+                
+                if (responseData.pagination) {
+                    this.moonbotUserTotalPages = responseData.pagination.total_pages;
+                }
+
+                if (direction === 'next') {
+                    this.moonbotUserOptions = [...this.moonbotUserOptions, ...newOptions];
+                    this.moonbotUserEndPage = targetPage;
+                    
+                    if (this.moonbotUserOptions.length > 75) {
+                        this.moonbotUserOptions = this.moonbotUserOptions.slice(-75);
+                        this.moonbotUserStartPage++;
+                        // Adjust scroll position after DOM updates
+                        this.$nextTick(() => {
+                            const container = this.$refs.moonbotDropdownContainer;
+                            if (container) container.scrollTop -= (25 * 37); // Approx height of 25 items
+                        });
+                    }
+                } else if (direction === 'prev') {
+                    this.moonbotUserOptions = [...newOptions, ...this.moonbotUserOptions];
+                    this.moonbotUserStartPage = targetPage;
+                    
+                    if (this.moonbotUserOptions.length > 75) {
+                        this.moonbotUserOptions = this.moonbotUserOptions.slice(0, 75);
+                        this.moonbotUserEndPage--;
+                    }
+                    
+                    // Adjust scroll position so user doesn't jump to the top
+                    this.$nextTick(() => {
+                        const container = this.$refs.moonbotDropdownContainer;
+                        if (container) container.scrollTop += (25 * 37); // Approx height of 25 items
+                    });
+                } else {
+                    this.moonbotUserOptions = newOptions;
+                }
+                
+                if (showDropdown) {
+                    this.showMoonbotUserDropdown = true;
+                }
+            } catch (err) {
+                console.error('Failed to fetch moonbot users:', err);
+                if (!direction) this.moonbotUserOptions = [];
+            } finally {
+                this.isSearchingMoonbotUsers = false;
+                this.isLoadingMoreMoonbotUsers = false;
+                this.isLoadingPrevMoonbotUsers = false;
+            }
+        },
+        handleMoonbotUserScroll(e) {
+            const container = e.target;
+            const bottom = container.scrollHeight - container.scrollTop - container.clientHeight < 10;
+            const top = container.scrollTop < 10;
+            
+            if (bottom && this.moonbotUserEndPage < this.moonbotUserTotalPages) {
+                this.fetchMoonbotUsers(this.moonbotUserSearch, 'next');
+            } else if (top && this.moonbotUserStartPage > 1) {
+                this.fetchMoonbotUsers(this.moonbotUserSearch, 'prev');
+            }
+        },
+        handleMoonbotUserBlur() {
+            setTimeout(() => {
+                this.showMoonbotUserDropdown = false;
+            }, 200);
+        },
+        selectCountry(code) {
+            this.formData.country_code = code;
+            this.showCountryDropdown = false;
+            this.countrySearch = '';
+        },
+        handleCountryBlur() {
+            setTimeout(() => {
+                this.showCountryDropdown = false;
+                this.countrySearch = '';
+            }, 200);
+        },
+        selectMoonbotUser(username) {
+            this.formData.moonbot_username = username;
+            this.moonbotUserSearch = username;
+            this.showMoonbotUserDropdown = false;
+        },
         async fetchAdmins() {
             this.loading = true;
             this.error = null;
@@ -173,7 +299,9 @@ export default {
                 password: '',
                 is_active: 1
             };
+            this.moonbotUserSearch = '';
             this.showModal = true;
+            this.fetchMoonbotUsers('', null, false);
         },
         openEditModal(user) {
             this.editingUser = user;
@@ -201,12 +329,15 @@ export default {
                 password: '',
                 is_active: user.is_active ?? 1
             };
+            this.moonbotUserSearch = user.moonbot_username || '';
             this.showModal = true;
+            this.fetchMoonbotUsers(this.moonbotUserSearch, null, false);
         },
         closeModal() {
             this.showModal = false;
             this.editingUser = null;
             this.formData = { username: '', moonbot_username: '', country_code: '62', phone_number: '', role_id: null, password: '', is_active: 1 };
+            this.moonbotUserSearch = '';
         },
         openResetModal(user) {
             this.resetUser = user;
@@ -429,10 +560,52 @@ export default {
                             label="Username"
                             :required="true"
                         />
-                        <FormInput 
-                            v-model="formData.moonbot_username"
-                            label="Moonbot Username"
-                        />
+                        
+                        <!-- Moonbot Username Autocomplete -->
+                        <div class="relative mb-5">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Moonbot Username
+                            </label>
+                            <input 
+                                v-model="moonbotUserSearch"
+                                @focus="fetchMoonbotUsers(moonbotUserSearch || '', null, true)"
+                                @blur="handleMoonbotUserBlur"
+                                type="text"
+                                placeholder="Search moonbot username..."
+                                class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                            />
+                            
+                            <!-- Dropdown -->
+                            <div 
+                                v-if="showMoonbotUserDropdown || isSearchingMoonbotUsers" 
+                                ref="moonbotDropdownContainer"
+                                class="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto"
+                                @scroll="handleMoonbotUserScroll"
+                            >
+                                <div v-if="isSearchingMoonbotUsers" class="px-4 py-3 text-sm text-gray-500 flex justify-center">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[#39DEBB]"></div>
+                                </div>
+                                <div v-else-if="moonbotUserOptions.length === 0" class="px-4 py-3 text-sm text-gray-500">
+                                    No users found
+                                </div>
+                                <ul v-else class="py-1">
+                                    <li v-if="isLoadingPrevMoonbotUsers" class="px-4 py-3 flex justify-center">
+                                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-[#39DEBB]"></div>
+                                    </li>
+                                    <li 
+                                        v-for="(opt, idx) in moonbotUserOptions" 
+                                        :key="idx"
+                                        @click="selectMoonbotUser(opt)"
+                                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                                    >
+                                        {{ opt }}
+                                    </li>
+                                    <li v-if="isLoadingMoreMoonbotUsers" class="px-4 py-3 flex justify-center">
+                                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-[#39DEBB]"></div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                        
                         
                         <div class="mb-5">
@@ -440,14 +613,51 @@ export default {
                                 Phone Number <span class="text-red-500">*</span>
                             </label>
                             <div class="flex gap-2">
-                                <select 
-                                    v-model="formData.country_code"
-                                    class="w-32 px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                                >
-                                    <option v-for="cc in countryCodes" :key="cc.code" :value="cc.code">
-                                        {{ cc.flag }} +{{ cc.code }}
-                                    </option>
-                                </select>
+                                <!-- Custom Country Searchable Select -->
+                                <div class="relative w-32 shrink-0">
+                                    <div 
+                                        @click="showCountryDropdown = !showCountryDropdown; if(showCountryDropdown) $nextTick(() => $refs.countrySearchInput && $refs.countrySearchInput.focus())"
+                                        class="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm flex items-center justify-between cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    >
+                                        <span class="truncate flex items-center gap-1">
+                                            <span>{{ selectedCountryFlag }}</span>
+                                            <span>+{{ formData.country_code }}</span>
+                                        </span>
+                                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </div>
+                                    
+                                    <!-- Dropdown -->
+                                    <div 
+                                        v-if="showCountryDropdown" 
+                                        class="absolute z-50 w-64 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 left-0"
+                                    >
+                                        <div class="p-2 border-b border-gray-100">
+                                            <input 
+                                                ref="countrySearchInput"
+                                                v-model="countrySearch"
+                                                @blur="handleCountryBlur"
+                                                type="text"
+                                                placeholder="Search country..."
+                                                class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                            />
+                                        </div>
+                                        <ul class="max-h-48 overflow-y-auto py-1">
+                                            <li v-if="filteredCountryCodes.length === 0" class="px-4 py-2 text-sm text-gray-500 text-center">
+                                                No results found
+                                            </li>
+                                            <li 
+                                                v-for="cc in filteredCountryCodes" 
+                                                :key="cc.name"
+                                                @click="selectCountry(cc.code)"
+                                                class="px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                                            >
+                                                <span class="text-base">{{ cc.flag }}</span>
+                                                <span class="font-medium">+{{ cc.code }}</span>
+                                                <span class="text-gray-500 text-xs truncate">{{ cc.name }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
                                 <input 
                                     v-model="formData.phone_number"
                                     type="text"

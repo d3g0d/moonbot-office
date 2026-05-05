@@ -265,8 +265,8 @@ export default {
                         
                         <!-- Custom Leader styling -->
                         <template #cell-leader="{ value }">
-                            <span class="text-gray-900 font-medium">
-                                {{ formatRank(value) }}
+                            <span class="text-[#0088cc] font-medium">
+                                {{ value }}
                             </span>
                         </template>
                         

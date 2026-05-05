@@ -17,11 +17,15 @@ export default {
     data() {
         // Initialize from route query
         const query = decryptQuery(this.$route.query);
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yesterdayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
         return {
             leaderName: query.leader || '',
             searchQuery: '',
             filters: {
-                date: query.date || ''
+                date: query.date || yesterdayStr
             },
             drilldownSort: {
                 sortBy: query.sort_by || 'days_credit_streak',
@@ -43,8 +47,8 @@ export default {
                 health_index: 0
             },
             drilldownPagination: {
-                page: 1,
-                limit: 50,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 50,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -256,6 +260,7 @@ export default {
             if (this.drilldownSort.sortBy) query.sort_by = this.drilldownSort.sortBy;
             if (this.drilldownSort.sortDir) query.sort_dir = this.drilldownSort.sortDir;
             if (this.drilldownPagination.page > 1) query.page = this.drilldownPagination.page;
+            if (this.drilldownPagination.limit !== 50) query.limit = this.drilldownPagination.limit;
             
             // Sync active filters from dropdown
             if (this.activeFilters.funds) query.funds = this.activeFilters.funds;
@@ -273,7 +278,7 @@ export default {
             if (query._p_sort_by) parentQuery.sort_by = query._p_sort_by;
             if (query._p_sort_dir) parentQuery.sort_dir = query._p_sort_dir;
             if (query._p_page && query._p_page !== '1') parentQuery.page = query._p_page;
-            if (query._p_limit && query._p_limit !== '25') parentQuery.limit = query._p_limit;
+            if (query._p_limit && query._p_limit !== '50') parentQuery.limit = query._p_limit;
             if (query._p_vip_plan && query._p_vip_plan !== 'All') parentQuery.vip_plan = query._p_vip_plan;
             if (query._p_search) parentQuery.search = query._p_search;
 
@@ -333,7 +338,7 @@ export default {
                 const downloadUrl = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                const filename = `Drilldown_BotHealth_${this.formatRank(this.leaderName).replace(/\s+/g, '_')}_${this.filters.date || new Date().toISOString().split('T')[0]}.csv`;
+                const filename = `Drilldown_BotHealth_${this.leaderName.replace(/\s+/g, '_')}_${this.filters.date}.csv`;
                 link.setAttribute('download', filename);
                 document.body.appendChild(link);
                 link.click();
@@ -343,15 +348,6 @@ export default {
                 console.error('Export error:', error);
                 alert('Gagal mendownload data export.');
             }
-        }
-    },
-    watch: {
-        searchQuery() {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.drilldownPagination.page = 1;
-                this.fetchDrilldown();
-            }, 500);
         }
     },
     watch: {
@@ -407,7 +403,7 @@ export default {
                         </svg>
                     </button>
                     <h2 class="text-lg font-bold text-gray-900">
-                        Leader - {{ formatRank(leaderName) }}
+                        Leader - {{ leaderName }}
                     </h2>
                 </div>
 

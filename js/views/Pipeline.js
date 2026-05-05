@@ -74,7 +74,7 @@ export default {
             pipelineData: [],
             pagination: {
                 page: parseInt(query.page) || 1,
-                limit: parseInt(query.limit) || 25,
+                limit: parseInt(query.limit) || 50,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -262,7 +262,7 @@ export default {
             if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
             if (this.sort.sortBy === 'bot_run_pct' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
             if (this.pagination.page > 1) query.page = this.pagination.page;
-            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.pagination.limit !== 50) query.limit = this.pagination.limit;
             if (this.searchQuery) query.search = this.searchQuery;
             
             this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
@@ -433,7 +433,7 @@ export default {
 
                         <template #cell-leader="{ value }">
                             <span @click="selectLeader(value)" class="text-[#00A3FF] hover:text-blue-600 font-medium cursor-pointer">
-                                {{ formatRank(value) }}
+                                {{ value }}
                             </span>
                         </template>
 

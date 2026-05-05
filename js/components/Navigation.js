@@ -297,7 +297,7 @@ export default {
                             {{ username }}
                         </p>
                         <p class="text-xs text-white/70 truncate" :title="roleName">
-                            {{ formatRank(roleName) }}
+                            {{ roleName }}
                         </p>
                     </div>
                     

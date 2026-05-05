@@ -21,10 +21,14 @@ export default {
         if (leaderValue !== 'All' && !leaderValue.includes('⭐')) {
             leaderValue = leaderValue + ' ⭐';
         }
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yesterdayStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
         return {
             searchQuery: query.search || '',
             filters: {
-                date: query.date || '', // Stores YYYY-MM-DD
+                date: query.date || yesterdayStr,
                 leader: leaderValue,
                 vipPlan: query.vip_plan || 'All'
             },
@@ -64,7 +68,7 @@ export default {
             },
             pagination: {
                 page: parseInt(query.page) || 1,
-                limit: parseInt(query.limit) || 25,
+                limit: parseInt(query.limit) || 50,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -255,7 +259,7 @@ export default {
             if (this.sort.sortDir && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
             if (this.sort.sortBy === 'health_index' && this.sort.sortDir !== 'desc') query.sort_dir = this.sort.sortDir;
             if (this.pagination.page > 1) query.page = this.pagination.page;
-            if (this.pagination.limit !== 25) query.limit = this.pagination.limit;
+            if (this.pagination.limit !== 50) query.limit = this.pagination.limit;
             if (this.filters.vipPlan && this.filters.vipPlan !== 'All') query.vip_plan = this.filters.vipPlan;
             if (this.searchQuery) query.search = this.searchQuery;
             
@@ -319,7 +323,7 @@ export default {
                     <DatePicker v-model="filters.date" :config="datePickerConfig">
                         <div class="flex flex-col sm:flex-row sm:items-center bg-white border border-gray-100 text-gray-700 rounded-2xl sm:rounded-full shadow-sm overflow-hidden px-1 py-0.5 cursor-pointer">
                             <span class="px-4 pt-2 sm:py-2 text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider whitespace-nowrap">Date:</span>
-                            <span class="px-4 pb-2 sm:py-2 sm:pl-2 pr-12 text-sm font-medium min-w-[120px] leading-relaxed">{{ filters.date ? filters.date : 'Today' }}</span>
+                            <span class="px-4 pb-2 sm:py-2 sm:pl-2 pr-12 text-sm font-medium min-w-[120px] leading-relaxed">{{ filters.date }}</span>
                             <div class="pointer-events-none absolute top-1/2 -translate-y-1/2 right-0 flex items-center px-4 text-gray-700">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </div>
@@ -405,7 +409,7 @@ export default {
                 >
                     <template #cell-leader="{ value, row }">
                          <span @click="selectLeader(row)" class="text-[#00A3FF] cursor-pointer hover:text-blue-600">
-                            {{ formatRank(value) }}
+                            {{ value }}
                         </span>
                     </template>
 

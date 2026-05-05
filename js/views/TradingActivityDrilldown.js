@@ -68,8 +68,8 @@ export default {
             drilldownLoading: false,
             drilldownError: null,
             drilldownPagination: {
-                page: 1,
-                limit: 50,
+                page: parseInt(query.page) || 1,
+                limit: parseInt(query.limit) || 50,
                 totalItems: 0,
                 totalPages: 0
             },
@@ -241,7 +241,7 @@ export default {
                         wallet_usdt: formatNumber(item.wallet_usdt || 0),
                         stableCapital: this.formatDate(item.stable_capital_date),
                         msisdn: item.msisdn || '-',
-                        coinGroup: item.coin_group || '-',
+                        coinGroup: (item.coin_group || '-').replace(/_/g, ' '),
                         mm: item.step_count ,
                         maxCoin: item.max_coin || '-',
                         upper_upline: item.upper_upline || '-',
@@ -268,6 +268,7 @@ export default {
             if (this.drilldownSort.sortBy) query.sort_by = this.drilldownSort.sortBy;
             if (this.drilldownSort.sortDir) query.sort_dir = this.drilldownSort.sortDir;
             if (this.drilldownPagination.page > 1) query.page = this.drilldownPagination.page;
+            if (this.drilldownPagination.limit !== 50) query.limit = this.drilldownPagination.limit;
             
             // Sync active filters from dropdown
             if (this.activeFilters.funds) query.funds = this.activeFilters.funds;
@@ -286,7 +287,7 @@ export default {
             if (query._p_sort_by) parentQuery.sort_by = query._p_sort_by;
             if (query._p_sort_dir) parentQuery.sort_dir = query._p_sort_dir;
             if (query._p_page && query._p_page !== '1') parentQuery.page = query._p_page;
-            if (query._p_limit && query._p_limit !== '25') parentQuery.limit = query._p_limit;
+            if (query._p_limit && query._p_limit !== '50') parentQuery.limit = query._p_limit;
             if (query._p_search) parentQuery.search = query._p_search;
 
             this.$router.push({ name: 'TradingActivity', query: encryptQuery(parentQuery) });
@@ -363,8 +364,8 @@ export default {
             JsonToPDF({
                 header: ['Username', 'Paket', 'Active 30D', 'Profit', 'credit (USDT)', 'stable capital', 'NO HP', 'coin group', 'MM', 'Max coin', 'DOUBLE EXECUTIVE', 'GOLD'],
                 data: dataToExport,
-                filename: `Drilldown_TradingActivity_${this.formatRank(this.selectedLeader).replace(/\s+/g, '_')}.pdf`,
-                title: `Trading Activity - Drilldown ${this.formatRank(this.selectedLeader)}`
+                filename: `Drilldown_TradingActivity_${this.selectedLeader.replace(/\s+/g, '_')}.pdf`,
+                title: `Trading Activity - Drilldown ${this.selectedLeader}`
             });
         }
     },
@@ -373,40 +374,26 @@ export default {
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
                 this.drilldownPagination.page = 1;
+                this.syncQueryParams();
                 this.fetchDrilldown();
             }, 500);
         },
         'filters.dateRange'() {
             this.drilldownPagination.page = 1;
+            this.syncQueryParams();
             this.fetchDrilldown();
         },
         'filters.potentialTopUp'() {
             this.drilldownPagination.page = 1;
+            this.syncQueryParams();
             this.fetchDrilldown();
-        }
-    },
-    watch: {
-        searchQuery() {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.drilldownPagination.page = 1;
-                this.syncQueryParams();
-                this.fetchDrilldown();
-            }, 500);
-        },
-        filters: {
-            deep: true,
-            handler() {
-                this.drilldownPagination.page = 1;
-                this.syncQueryParams();
-                this.fetchSnapshot();
-                this.fetchDrilldown();
-            }
         },
         activeFilters: {
             deep: true,
             handler() {
+                this.drilldownPagination.page = 1;
                 this.syncQueryParams();
+                this.fetchDrilldown();
             }
         }
     },
@@ -424,7 +411,7 @@ export default {
                         </svg>
                     </button>
                     <h2 class="text-xl font-bold text-gray-800">
-                        Drilldown Potential Top Up - {{ formatRank(selectedLeader) }}
+                        Drilldown Summary - {{ selectedLeader }}
                     </h2>
                 </div>
 
