@@ -39,12 +39,12 @@ export default {
                             {{ error }}
                         </div>
 
-                        <!-- Username Field
+                        <!-- Username Field -->
                         <FloatingLabelInput 
                             id="username" 
                             label="Username" 
                             v-model="form.username" 
-                        /> -->
+                        />
 
                         <!-- Password Field -->
                         <FloatingLabelInput 
