@@ -32,7 +32,7 @@ export default {
             <div class="sm:mx-auto sm:w-full sm:max-w-md px-4">
                 <!-- Transparent Card -->
                 <div class="py-8 px-6 rounded-lg shadow-xl relative backdrop-blur-sm bg-white/5">
-                    
+                    js
                     <form class="space-y-6" @submit.prevent="handleLogin">
                         <!-- Error Message -->
                         <div v-if="error" class="bg-red-500/20 border border-red-500 text-red-200 px-4 py-2 rounded text-sm">
