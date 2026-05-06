@@ -187,6 +187,7 @@ export default {
                 if (window.Sentry) Sentry.captureException(err, { category: 'summary_fetch' });
             }
         },
+        
         async fetchLeaders() {
             this.loading = true;
             this.error = null;
