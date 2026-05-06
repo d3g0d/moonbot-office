@@ -324,6 +324,15 @@ export default {
             const url = `${BASE_URL}/trading-activity/drilldown/export?${params.toString()}`;
 
             try {
+                if (window.Sentry) {
+                    Sentry.addBreadcrumb({
+                        category: 'export',
+                        message: `Starting CSV Export: ${this.selectedLeader}`,
+                        level: 'info',
+                        data: { url, leader: this.selectedLeader }
+                    });
+                }
+
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -341,12 +350,30 @@ export default {
                 link.click();
                 link.remove();
                 window.URL.revokeObjectURL(downloadUrl);
+
+                if (window.Sentry) {
+                    Sentry.addBreadcrumb({
+                        category: 'export',
+                        message: `CSV Export Success: ${filename}`,
+                        level: 'info'
+                    });
+                }
             } catch (error) {
                 console.error('Export error:', error);
+                if (window.Sentry) {
+                    Sentry.captureException(error, { extra: { url, leader: this.selectedLeader } });
+                }
                 alert('Gagal mendownload data export.');
             }
         },
         exportDrilldownPdf() {
+            if (window.Sentry) {
+                Sentry.addBreadcrumb({
+                    category: 'export',
+                    message: `Starting PDF Export: ${this.selectedLeader}`,
+                    level: 'info'
+                });
+            }
             const dataToExport = this.drilldownData.map(item => ({
                 Username: item.username || '-',
                 Paket: item.vip_level || '-',

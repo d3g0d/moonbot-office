@@ -39,11 +39,35 @@ export async function fetchApi(path, options = {}) {
     }
 
     try {
+        if (window.Sentry) {
+            Sentry.addBreadcrumb({
+                category: 'api',
+                message: `Request: ${path}`,
+                level: 'info',
+                data: {
+                    method: customOptions.method || 'GET',
+                    url: url
+                }
+            });
+        }
+
         const response = await fetch(url, {
             ...customOptions,
             headers: defaultHeaders,
             body: formattedBody,
         });
+
+        if (window.Sentry) {
+            Sentry.addBreadcrumb({
+                category: 'api',
+                message: `Response: ${path} [${response.status}]`,
+                level: response.ok ? 'info' : 'warning',
+                data: {
+                    status: response.status,
+                    ok: response.ok
+                }
+            });
+        }
 
         // Basic error handling
         if (!response.ok) {
@@ -55,6 +79,17 @@ export async function fetchApi(path, options = {}) {
             const error = new Error(errorData.message || `HTTP error! status: ${response.status}`);
             error.status = response.status;
             error.data = errorData;
+            
+            if (window.Sentry) {
+                Sentry.captureException(error, {
+                    extra: {
+                        path,
+                        status: response.status,
+                        errorData
+                    }
+                });
+            }
+            
             throw error;
         }
 
@@ -62,6 +97,13 @@ export async function fetchApi(path, options = {}) {
         return await response.json();
     } catch (error) {
         console.error(`API Fetch Error [${url}]:`, error);
+        
+        if (window.Sentry && !(error.status)) { // Only capture if not already captured above or if it's a network error
+            Sentry.captureException(error, {
+                extra: { path, url }
+            });
+        }
+        
         throw error;
     }
 }

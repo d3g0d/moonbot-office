@@ -229,6 +229,14 @@ export default {
             }
         },
         selectLeader(leaderName) {
+            if (window.Sentry) {
+                Sentry.addBreadcrumb({
+                    category: 'navigation',
+                    message: `Selecting Leader for Drilldown: ${leaderName}`,
+                    level: 'info',
+                    data: { leader: leaderName }
+                });
+            }
             const parentState = {
                 _p_leader: this.filters.leader !== 'All' ? this.filters.leader.replace(' ⭐', '') : 'All',
                 _p_vipPlan: this.filters.vipPlan,
