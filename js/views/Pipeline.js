@@ -184,6 +184,7 @@ export default {
                 }
             } catch (err) {
                 console.error('Failed to fetch pipeline summary:', err);
+                if (window.Sentry) Sentry.captureException(err, { category: 'summary_fetch' });
             }
         },
         async fetchLeaders() {
@@ -228,6 +229,7 @@ export default {
             } catch (err) {
                 console.error('Failed to fetch pipeline leaders:', err);
                 this.error = 'Failed to load pipeline leaders data.';
+                if (window.Sentry) Sentry.captureException(err, { category: 'leaders_fetch' });
             } finally {
                 this.loading = false;
             }

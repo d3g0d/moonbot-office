@@ -171,6 +171,7 @@ export default {
                 }
             } catch (err) {
                 console.error('Failed to fetch snapshot:', err);
+                if (window.Sentry) Sentry.captureException(err, { category: 'snapshot' });
             }
         },
         async fetchLeaders() {
@@ -224,6 +225,7 @@ export default {
             } catch (err) {
                 console.error('Failed to fetch trading activity leaders:', err);
                 this.error = 'Failed to load trading activity data.';
+                if (window.Sentry) Sentry.captureException(err, { category: 'leaders_fetch' });
             } finally {
                 this.loading = false;
             }
