@@ -7,6 +7,28 @@
     <title>Moonbot Office</title>
     <link rel="icon" type="image/png" href="./assets/images/logo/Logo-Notext.png">
 
+    <!-- Sentry Loader -->
+    <script
+      src="https://js.sentry-cdn.com/94c25b75dffa26d0d79e8f491b668b54.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <script>
+      // Verify Sentry loading and provide a test trigger
+      window.addEventListener('load', () => {
+        if (window.Sentry) {
+          console.log('✅ Sentry is active');
+        } else {
+          console.error('❌ Sentry failed to load');
+        }
+      });
+
+      function triggerSentryTest() {
+        console.log('Triggering Sentry test error...');
+        throw new Error('Sentry Test Error from Moonbot Office at ' + new Date().toLocaleString());
+      }
+    </script>
+
     <!-- Tailwind CSS (Dev CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
 
@@ -81,6 +103,14 @@
 <body class="bg-gray-50 text-gray-800 antialiased">
     <div id="app">
         <router-view></router-view>
+
+        <!-- Temporary Sentry Test Button -->
+        <button 
+            onclick="triggerSentryTest()"
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #362d59; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; cursor: pointer;"
+        >
+            Test Sentry Error
+        </button>
 
     </div>
 
