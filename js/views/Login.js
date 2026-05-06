@@ -28,7 +28,7 @@ export default {
                     <img src="./assets/images/logo/logo.svg" class="h-12 w-auto" alt="Moonbot">
                 </div>
             </div>
-dsadas
+
             <div class="sm:mx-auto sm:w-full sm:max-w-md px-4">
                 <!-- Transparent Card -->
                 <div class="py-8 px-6 rounded-lg shadow-xl relative backdrop-blur-sm bg-white/5">
