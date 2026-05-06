@@ -10,7 +10,7 @@ const routes = [
     {
         path: '/login',
         name: 'Login',
-        component: () => import('./views/Login.js?v=4') // Login pagement version
+        component: () => import('./views/Login.js?v=5') // Login pagement version
     },
     {
         path: '/otp',
