@@ -27,6 +27,28 @@
         console.log('Triggering Sentry test error...');
         throw new Error('Sentry Test Error from Moonbot Office at ' + new Date().toLocaleString());
       }
+
+      function sendSentryInfo() {
+        if (window.Sentry) {
+          console.log('Sending info to Sentry...');
+          Sentry.captureMessage('Manual Sentry Info signal from Moonbot Office', {
+            level: 'info',
+            extra: {
+              timestamp: new Date().toISOString(),
+              location: window.location.href
+            }
+          });
+          Swal.fire({
+            title: 'Sentry Info Sent',
+            text: 'Information has been successfully sent to Sentry dashboard.',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        } else {
+          console.error('Sentry not loaded');
+        }
+      }
     </script>
 
     <!-- Tailwind CSS (Dev CDN) -->
@@ -104,13 +126,21 @@
     <div id="app">
         <router-view></router-view>
 
-        <!-- Temporary Sentry Test Button -->
-        <button 
-            onclick="triggerSentryTest()"
-            style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #362d59; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; cursor: pointer;"
-        >
-            Test Sentry Error
-        </button>
+        <!-- Temporary Sentry Test Buttons -->
+        <div style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;">
+            <button 
+                onclick="sendSentryInfo()"
+                style="background: #0ea5e9; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; cursor: pointer;"
+            >
+                Send Sentry Info
+            </button>
+            <button 
+                onclick="triggerSentryTest()"
+                style="background: #ef4444; color: white; padding: 10px 20px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; cursor: pointer;"
+            >
+                Trigger Sentry Error
+            </button>
+        </div>
 
     </div>
 
