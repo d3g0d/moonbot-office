@@ -1,5 +1,5 @@
 import { createApp } from 'vue';
-import router from './router.js?v=13';
+import router from './router.js?v=14';
 
 const app = createApp({
     template: `
