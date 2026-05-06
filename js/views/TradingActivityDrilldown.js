@@ -256,6 +256,7 @@ export default {
             } catch (err) {
                 console.error('Failed to fetch trading activity drilldown:', err);
                 this.drilldownError = 'Failed to load drilldown data.';
+                if (window.Sentry) Sentry.captureException(err, { category: 'drilldown_fetch' });
             } finally {
                 this.drilldownLoading = false;
             }
