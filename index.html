@@ -14,6 +14,49 @@
     ></script>
 
     <script>
+       if (window.Sentry) {
+        Sentry.onLoad(function () {
+          Sentry.init({
+            // Note: The DSN is usually handled by the loader script, 
+            // but we can override/augment here if needed.
+            environment: 'production',
+            debug: true,
+            maxBreadcrumbs: 50,
+            beforeSend(event, hint) {
+              const error = hint.originalException;
+              if (error === "/" || error?.message?.includes("Connection Problem")) {
+                return null;
+              }
+
+              // Get uid and username from localStorage (as used in Moonbot Office)
+              const uid = localStorage.getItem('moon_office_uid') || '';
+              const username = localStorage.getItem('moon_office_username') || '';
+
+              // Get trace_id
+              let traceId = event.contexts?.trace?.trace_id;
+              if (!traceId) {
+                try {
+                  traceId = Sentry.getCurrentScope()?.getPropagationContext()?.traceId;
+                } catch (e) { }
+              }
+
+              // Add to extra
+              if (!event.extra) event.extra = {};
+              event.extra.uid = uid;
+              event.extra.username = username;
+              event.extra.trace_id = traceId;
+
+              // Add to tags for searchability
+              if (!event.tags) event.tags = {};
+              if (uid) event.tags.uid = String(uid);
+              if (username) event.tags.username = username;
+              if (traceId) event.tags.trace_id = traceId;
+
+              return event;
+            },
+          });
+        });
+      }
       // Verify Sentry loading and provide a test trigger
       window.addEventListener('load', () => {
         if (window.Sentry) {
