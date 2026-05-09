@@ -15,7 +15,7 @@ const routes = [
     {
         path: '/otp',
         name: 'OTPVerification',
-        component: () => import('./views/OTPVerification.js?v=6') // OTP Verification pagersion
+        component: () => import('./views/OTPVerification.js?v=7') // OTP Verification pagersion
     },
     {
         path: '/access-management',
@@ -72,6 +72,21 @@ router.beforeEach((to, from, next) => {
 
     if (authRequired && !token) {
         return next('/login');
+    }
+
+    // Redirect from Dashboard if no permission
+    if (to.path === '/' || to.name === 'Dashboard') {
+        const cachedPerms = localStorage.getItem('moon_office_permissions');
+        if (cachedPerms) {
+            try {
+                const features = JSON.parse(cachedPerms);
+                if (!features.includes('main_dashboard')) {
+                    return next('/bot-health');
+                }
+            } catch (e) {
+                console.error('Failed to parse permissions in router', e);
+            }
+        }
     }
 
     next();

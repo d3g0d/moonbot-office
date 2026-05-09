@@ -239,8 +239,19 @@ export default {
                     // Clear temp tokens
                     sessionStorage.removeItem('moon_office_temp_token');
                     
-                    // Redirect to Dashboard
-                    this.$router.push({ name: 'Dashboard' });
+                    // Redirect based on permissions
+                    const cachedPerms = localStorage.getItem('moon_office_permissions');
+                    let features = [];
+                    try {
+                        if (cachedPerms) features = JSON.parse(cachedPerms);
+                    } catch (e) {}
+
+                    if (features.includes('main_dashboard')) {
+                        this.$router.push({ name: 'Dashboard' });
+                    } else {
+                        // Default to Bot Health if dashboard is not allowed
+                        this.$router.push({ name: 'BotHealth' });
+                    }
                 } else {
                     throw new Error("Access token not received.");
                 }
