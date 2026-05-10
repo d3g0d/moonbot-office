@@ -22,6 +22,7 @@ export default {
         const query = decryptQuery(this.$route.query);
         return {
             searchQuery: query.search || '',
+            showActiveOnly: query.is_active !== undefined ? parseInt(query.is_active) : 1,
             showModal: false,
             editingUser: null,
             loading: false,
@@ -31,6 +32,7 @@ export default {
                     class: 'sticky left-0 bg-white group-hover:bg-gray-50 z-10 !px-4 md:!px-6 !max-w-[100px] md:!max-w-[200px] !min-w-[100px] md:!min-w-[200px] !w-[100px] md:!w-[200px] break-all break-words'},
                 { key: 'moonbot_username', label: 'MOONBOT USERNAME', sortable: true },
                 { key: 'role_label', label: 'ROLES', align: 'center' },
+                { key: 'is_active', label: 'STATUS', align: 'center' },
                 { key: 'last_login', label: 'LAST LOGIN', sortable: true }
             ],
             actions: [
@@ -102,6 +104,10 @@ export default {
     watch: {
         searchQuery() {
             this.syncQueryParams();
+        },
+        showActiveOnly() {
+            this.syncQueryParams();
+            this.fetchAdmins();
         },
         moonbotUserSearch(newVal) {
             // Ignore if it matches the form data (selected)
@@ -228,7 +234,7 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const response = await fetchApi('/admins');
+                const response = await fetchApi(`/admins?is_active=${this.showActiveOnly}`);
                 this.admins = Array.isArray(response.data) ? response.data : (response.data?.admins || []);
             } catch (err) {
                 console.error('Failed to fetch admins:', err);
@@ -388,30 +394,71 @@ export default {
 
                 this.closeModal();
                 await this.fetchAdmins();
+                Swal.fire({
+                    title: 'Success',
+                    text: `Admin ${isEditing ? 'updated' : 'created'} successfully`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
             } catch (err) {
                 console.error(`Failed to ${this.editingUser ? 'update' : 'create'} admin:`, err);
-                alert(`Failed to ${this.editingUser ? 'update' : 'create'} admin: ` + (err.message || 'Unknown error'));
+                Swal.fire({
+                    title: 'Error',
+                    text: `Failed to ${this.editingUser ? 'update' : 'create'} admin: ` + (err.message || 'Unknown error'),
+                    icon: 'error'
+                });
             } finally {
                 this.submitting = false;
             }
         },
         async deleteAdmin(user) {
-            if (confirm(`Are you sure you want to delete ${user.username}?`)) {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: `You want to delete ${user.username}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#39DEBB',
+                cancelButtonColor: '#f3f4f6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: '!text-white',
+                    cancelButton: '!text-gray-700'
+                }
+            });
+
+            if (result.isConfirmed) {
                 try {
                     await fetchApi(`/admins/${user.id}`, {
                         method: 'DELETE'
                     });
                     await this.fetchAdmins();
+                    Swal.fire({
+                        title: 'Deleted',
+                        text: 'Admin has been deleted successfully',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
                 } catch (err) {
                     console.error('Failed to delete admin:', err);
-                    alert('Failed to delete admin: ' + (err.message || 'Unknown error'));
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Failed to delete admin: ' + (err.message || 'Unknown error'),
+                        icon: 'error'
+                    });
                 }
             }
         },
         async saveResetPassword() {
             if (this.submitting) return;
             if (!this.resetPasswordData.password) {
-                alert('Please enter a new password');
+                Swal.fire({
+                    title: 'Warning',
+                    text: 'Please enter a new password',
+                    icon: 'warning'
+                });
                 return;
             }
 
@@ -423,11 +470,21 @@ export default {
                         password: this.resetPasswordData.password
                     }
                 });
-                alert('Password reset successfully');
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Password reset successfully',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 this.closeResetModal();
             } catch (err) {
                 console.error('Failed to reset password:', err);
-                alert('Failed to reset password: ' + (err.message || 'Unknown error'));
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to reset password: ' + (err.message || 'Unknown error'),
+                    icon: 'error'
+                });
             } finally {
                 this.submitting = false;
             }
@@ -443,12 +500,22 @@ export default {
                         role_id: this.roleData.role_id
                     }
                 });
-                alert('Role updated successfully');
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Role updated successfully',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
                 this.closeRoleModal();
                 await this.fetchAdmins();
             } catch (err) {
                 console.error('Failed to update role:', err);
-                alert('Failed to update role: ' + (err.message || 'Unknown error'));
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to update role: ' + (err.message || 'Unknown error'),
+                    icon: 'error'
+                });
             } finally {
                 this.submitting = false;
             }
@@ -469,9 +536,61 @@ export default {
                     break;
             }
         },
+        async toggleStatus(user) {
+            const result = await Swal.fire({
+                title: 'Are you sure?',
+                text: `You want to ${user.is_active ? 'deactivate' : 'activate'} ${user.username}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#39DEBB',
+                cancelButtonColor: '#f3f4f6',
+                confirmButtonText: 'Yes, change it!',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: '!text-white',
+                    cancelButton: '!text-gray-700'
+                }
+            });
+
+            if (!result.isConfirmed) return;
+
+            try {
+                const newStatus = user.is_active ? 0 : 1;
+                
+                await fetchApi(`/admins/${user.id}`, {
+                    method: 'PUT',
+                    body: {
+                        username: user.username,
+                        moonbot_username: user.moonbot_username,
+                        phone: user.phone,
+                        role_id: user.role_id,
+                        is_active: newStatus
+                    }
+                });
+
+                Swal.fire({
+                    title: 'Success',
+                    text: 'Status updated successfully',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                await this.fetchAdmins();
+            } catch (err) {
+                console.error('Failed to toggle status:', err);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Failed to update status: ' + (err.message || 'Unknown error'),
+                    icon: 'error'
+                });
+                await this.fetchAdmins();
+            }
+        },
         syncQueryParams() {
             const query = {};
             if (this.searchQuery) query.search = this.searchQuery;
+            query.is_active = this.showActiveOnly;
             this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         }
     },
@@ -486,6 +605,16 @@ export default {
                     <div class="flex items-center gap-4 w-full md:w-auto"> 
                         <div class="w-full md:w-64 h-11">
                             <SearchInput v-model="searchQuery" placeholder="Search Username/Email" width="w-full" class="h-full border-gray-200" />
+                        </div>
+                        <div class="h-11 flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 shadow-sm">
+                            <label class="flex items-center cursor-pointer m-0 mb-0">
+                                <div class="relative flex items-center">
+                                    <input type="checkbox" :checked="showActiveOnly === 1" @change="showActiveOnly = $event.target.checked ? 1 : 0" class="sr-only">
+                                    <div class="block w-9 h-5 rounded-full transition-colors duration-200 ease-in-out" :class="showActiveOnly === 1 ? 'bg-[#39DEBB]' : 'bg-gray-200'"></div>
+                                    <div class="absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform duration-200 ease-in-out transform shadow-sm" :class="showActiveOnly === 1 ? 'translate-x-4' : 'translate-x-0'"></div>
+                                </div>
+                                <span class="ml-2 text-xs font-medium text-gray-700 whitespace-nowrap">Active Only</span>
+                            </label>
                         </div>
                     </div>
 
@@ -535,6 +664,26 @@ export default {
                     <!-- Custom last login cell -->
                     <template #cell-last_login="{ value }">
                         <span class="text-gray-500">{{ formatDate(value) }}</span>
+                    </template>
+
+                    <!-- Custom status cell -->
+                    <template #cell-is_active="{ row, value }">
+                        <div class="flex items-center justify-center gap-3">
+                            <button 
+                                @click.stop="toggleStatus(row)"
+                                class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+                                :class="value ? 'bg-[#39DEBB]' : 'bg-gray-200'"
+                            >
+                                <span 
+                                    aria-hidden="true" 
+                                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                    :class="value ? 'translate-x-4' : 'translate-x-0'"
+                                ></span>
+                            </button>
+                            <span :class="['text-[10px] font-bold uppercase tracking-wider min-w-[50px] text-left', value ? 'text-teal-600' : 'text-gray-400']">
+                                {{ value ? 'Active' : 'Inactive' }}
+                            </span>
+                        </div>
                     </template>
 
                     <!-- Row actions -->
