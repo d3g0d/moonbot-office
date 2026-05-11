@@ -20,7 +20,7 @@ const routes = [
     {
         path: '/access-management',
         name: 'AccessManagement',
-        component: () => import('./views/AccessManagement.js?v=16') // Access Management page
+        component: () => import('./views/AccessManagement.js?v=17') // Access Management page
     },
     {
         path: '/bot-health',
