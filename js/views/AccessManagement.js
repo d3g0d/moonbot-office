@@ -75,7 +75,12 @@ export default {
             isLoadingPrevMoonbotUsers: false,
             countryCodes: countryCodes,
             showCountryDropdown: false,
-            countrySearch: ''
+            countrySearch: '',
+            currentPage: query.page ? parseInt(query.page) : 1,
+            totalPages: 1,
+            totalItems: 0,
+            rowsPerPage: query.limit ? parseInt(query.limit) : 25,
+            searchTimeout: null
         }
     },
     computed: {
@@ -90,24 +95,25 @@ export default {
                 c.name.toLowerCase().includes(s) || c.code.includes(s)
             );
         },
-        filteredUsers() {
-            const admins = Array.isArray(this.admins) ? this.admins : [];
-            if (!this.searchQuery) return admins;
-            const query = this.searchQuery.toLowerCase();
-            return admins.filter(user =>
-                user.username?.toLowerCase().includes(query) ||
-                user.moonbot_username?.toLowerCase().includes(query) ||
-                user.role_label?.toLowerCase().includes(query)
-            );
-        }
     },
     watch: {
         searchQuery() {
             this.syncQueryParams();
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                this.currentPage = 1;
+                this.fetchAdmins();
+            }, 500);
         },
         showActiveOnly() {
-            this.syncQueryParams();
+            this.currentPage = 1;
             this.fetchAdmins();
+        },
+        currentPage() {
+            this.syncQueryParams();
+        },
+        rowsPerPage() {
+            this.syncQueryParams();
         },
         moonbotUserSearch(newVal) {
             // Ignore if it matches the form data (selected)
@@ -234,8 +240,19 @@ export default {
             this.loading = true;
             this.error = null;
             try {
-                const response = await fetchApi(`/admins?is_active=${this.showActiveOnly}`);
-                this.admins = Array.isArray(response.data) ? response.data : (response.data?.admins || []);
+                const response = await fetchApi(`/admins?is_active=${this.showActiveOnly}&page=${this.currentPage}&limit=${this.rowsPerPage}&search=${encodeURIComponent(this.searchQuery || '')}`);
+                const responseData = response.data || {};
+                this.admins = Array.isArray(responseData) ? responseData : (responseData.admins || responseData.data || []);
+                
+                if (responseData.pagination) {
+                    this.totalItems = responseData.pagination.total;
+                    this.totalPages = responseData.pagination.total_pages;
+                    this.currentPage = responseData.pagination.current_page;
+                } else {
+                    this.totalItems = this.admins.length;
+                    this.totalPages = 1;
+                    this.currentPage = 1;
+                }
             } catch (err) {
                 console.error('Failed to fetch admins:', err);
                 this.error = 'Failed to load administrative users.';
@@ -591,6 +608,8 @@ export default {
             const query = {};
             if (this.searchQuery) query.search = this.searchQuery;
             query.is_active = this.showActiveOnly;
+            if (this.currentPage > 1) query.page = this.currentPage;
+            if (this.rowsPerPage !== 25) query.limit = this.rowsPerPage;
             this.$router.replace({ query: encryptQuery(query) }).catch(() => {});
         }
     },
@@ -645,8 +664,14 @@ export default {
                 <DataTable 
                     v-else
                     :columns="columns" 
-                    :data="filteredUsers"
+                    :data="admins"
                     :show-actions="true"
+                    :server-side="true"
+                    :total-items="totalItems"
+                    :total-pages="totalPages"
+                    v-model:current-page="currentPage"
+                    v-model:rows-per-page="rowsPerPage"
+                    @page-change="fetchAdmins"
                 >
                     <!-- Custom role cell -->
                     <template #cell-role_label="{ value }">
