@@ -616,7 +616,7 @@ export default {
     template: `
         <MainLayout>
             <div class="mb-8">
-                <h1 class="text-2xl font-bold text-gray-900">Access Manageement</h1>
+                <h1 class="text-2xl font-bold text-gray-900">Access Management</h1>
             </div>
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <!-- Toolbar -->
