@@ -236,9 +236,20 @@ export default {
             this.moonbotUserSearch = username;
             this.showMoonbotUserDropdown = false;
         },
-        async fetchAdmins() {
-            this.loading = true;
+        async fetchAdmins(event) {
+            // Only show full loading spinner on initial load (no data yet)
+            const isInitialLoad = this.admins.length === 0;
+            if (isInitialLoad) this.loading = true;
             this.error = null;
+
+            // If called from page-change event, update state first
+            if (event && typeof event === 'object' && event.page !== undefined) {
+                this.currentPage = event.page;
+                if (event.rowsPerPage !== undefined) {
+                    this.rowsPerPage = event.rowsPerPage;
+                }
+            }
+
             try {
                 const response = await fetchApi(`/admins?is_active=${this.showActiveOnly}&page=${this.currentPage}&limit=${this.rowsPerPage}&search=${encodeURIComponent(this.searchQuery || '')}`);
                 const responseData = response.data || {};
@@ -648,8 +659,8 @@ export default {
                     </button>
                 </div>
 
-                <!-- Loading State -->
-                <div v-if="loading" class="flex flex-col items-center justify-center py-12">
+                <!-- Loading State (only on initial load) -->
+                <div v-if="loading && admins.length === 0" class="flex flex-col items-center justify-center py-12">
                     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#39DEBB] mb-4"></div>
                     <p class="text-gray-500 text-sm">Loading administrative users...</p>
                 </div>
@@ -669,9 +680,11 @@ export default {
                     :server-side="true"
                     :total-items="totalItems"
                     :total-pages="totalPages"
-                    v-model:current-page="currentPage"
-                    v-model:rows-per-page="rowsPerPage"
+                    :current-page="currentPage"
+                    :default-rows-per-page="rowsPerPage"
                     @page-change="fetchAdmins"
+                    @update:currentPage="currentPage = $event"
+                    @update:rowsPerPage="rowsPerPage = $event"
                 >
                     <!-- Custom role cell -->
                     <template #cell-role_label="{ value }">
