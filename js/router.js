@@ -35,12 +35,12 @@ const routes = [
     {
         path: '/trading-activity',
         name: 'TradingActivity',
-        component: () => import('./views/TradingActivity.js?v=17') // Trading Activity page
+        component: () => import('./views/TradingActivity.js?v=18') // Trading Activity page
     },
     {
         path: '/trading-activity/drilldown',
         name: 'TradingActivityDrilldown',
-        component: () => import('./views/TradingActivityDrilldown.js?v=8') // Trading Activity Drilldown page
+        component: () => import('./views/TradingActivityDrilldown.js?v=9') // Trading Activity Drilldown page
     },
     {
         path: '/pipeline',
