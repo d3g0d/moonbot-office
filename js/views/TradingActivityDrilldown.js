@@ -23,7 +23,7 @@ export default {
             selectedLeader: query.leader || '',
             filters: {
                 dateRange: query.dateRange || getDefaultDateRange(),
-                potentialTopUp: true
+                potentialTopUp: query.potentialTopUp !== undefined ? (query.potentialTopUp === true || query.potentialTopUp === 'true') : true
             },
             rangePickerConfig: {
                 mode: 'range',
@@ -307,17 +307,38 @@ export default {
                 search: this.searchQuery || ''
             });
 
+            params.append('potential_topup', this.filters.potentialTopUp ? '1' : '0');
+
             if (this.filters.dateRange) {
                 const dates = this.filters.dateRange.split(' to ');
                 if (dates.length === 2) {
                     params.append('start_date', dates[0]);
                     params.append('end_date', dates[1]);
+                } else if (dates.length === 1) {
+                    params.append('start_date', dates[0]);
+                    params.append('end_date', dates[0]);
                 }
+            }
+
+            if (this.activeFilters.vipPlan && Array.isArray(this.activeFilters.vipPlan)) {
+                this.activeFilters.vipPlan.forEach(plan => {
+                    let planVal = plan;
+                    if (plan === 'Basic') planVal = '1';
+                    else if (plan === 'Advance') planVal = '2';
+                    else if (plan === 'Pro+') planVal = '3';
+                    params.append('plan', planVal);
+                });
             }
 
             if (this.activeFilters.stable_capital) params.append('stable_capital', this.activeFilters.stable_capital);
             if (this.activeFilters.profit_min) params.append('profit_min', this.activeFilters.profit_min);
-            if (this.activeFilters.credit) params.append('credit', this.activeFilters.credit);
+            if (this.activeFilters.credit) {
+                if (Array.isArray(this.activeFilters.credit)) {
+                     this.activeFilters.credit.forEach(c => params.append('credit', c));
+                } else {
+                     params.append('credit', this.activeFilters.credit);
+                }
+            }
             if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
             if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
 
