@@ -1,5 +1,5 @@
 import FloatingLabelInput from '../components/FloatingLabelInput.js';
-import { fetchApi } from '../utils/api.js?v=5';
+import { fetchApi } from '../utils/api.js?v=6';
 
 export default {
     name: 'Login',

@@ -1,4 +1,4 @@
-import Navigation from '../components/Navigation.js?v=27';
+import Navigation from '../components/Navigation.js?v=28';
 // import Header from '../components/Header.js';
 
 export default {

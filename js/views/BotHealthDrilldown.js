@@ -1,10 +1,10 @@
-import MainLayout from '../layouts/MainLayout.js?v=26';
+import MainLayout from '../layouts/MainLayout.js?v=27';
 import SearchInput from '../components/SearchInput.js';
-import DataTable from '../components/DataTable.js?v=35';
-import FilterDropdown from '../components/FilterDropdown.js?v=5';
-import { formatNumber, formatRank } from '../utils/formatters.js?v=4'; 
-import { fetchApi, BASE_URL } from '../utils/api.js?v=5';
-import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=2';
+import DataTable from '../components/DataTable.js?v=36';
+import FilterDropdown from '../components/FilterDropdown.js?v=6';
+import { formatNumber, formatRank } from '../utils/formatters.js?v=5'; 
+import { fetchApi, BASE_URL } from '../utils/api.js?v=6';
+import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=3';
 
 export default {
     name: 'BotHealthDrilldown',
@@ -322,6 +322,11 @@ export default {
             }
             if (this.activeFilters.upline) params.append('upline', this.activeFilters.upline);
             if (this.activeFilters.upper_upline) params.append('upper_upline', this.activeFilters.upper_upline);
+
+            if (this.drilldownSort.sortBy) {
+                params.append('sort_by', this.drilldownSort.sortBy);
+                params.append('sort_dir', this.drilldownSort.sortDir || 'asc');
+            }
 
             const token = localStorage.getItem('moon_office_token');
             const url = `${BASE_URL}/bot-health/drilldown/export?${params.toString()}`;

@@ -1,11 +1,11 @@
-import MainLayout from '../layouts/MainLayout.js?v=26';
-import SearchInput from '../components/SearchInput.js?v=3';
-import DataTable from '../components/DataTable.js?v=35';
-import ActionDropdown from '../components/ActionDropdown.js?v=3';
-import Modal from '../components/Modal.js?v=3';
-import FormInput from '../components/FormInput.js?v=3';
-import { fetchApi } from '../utils/api.js?v=5';
-import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=2';
+import MainLayout from '../layouts/MainLayout.js?v=27';
+import SearchInput from '../components/SearchInput.js?v=4';
+import DataTable from '../components/DataTable.js?v=36';
+import ActionDropdown from '../components/ActionDropdown.js?v=4';
+import Modal from '../components/Modal.js?v=4';
+import FormInput from '../components/FormInput.js?v=4';
+import { fetchApi } from '../utils/api.js?v=6';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=3';
 import { countryCodes } from '../data/country.js';
 
 export default {
