@@ -1,11 +1,11 @@
-import MainLayout from '../layouts/MainLayout.js?v=25';
-import DataTable from '../components/DataTable.js?v=34';
+import MainLayout from '../layouts/MainLayout.js?v=26';
+import DataTable from '../components/DataTable.js?v=35';
 import SearchInput from '../components/SearchInput.js';
-import FilterDropdown from '../components/FilterDropdown.js?v=3';
-import DatePicker from '../components/DatePicker.js?v=2';
-import { formatNumber, formatRank, JsonToCSV, JsonToPDF, getDefaultDateRange } from '../utils/formatters.js?v=3';
-import { fetchApi, BASE_URL } from '../utils/api.js?v=4';
-import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=1';
+import FilterDropdown from '../components/FilterDropdown.js?v=4';
+import DatePicker from '../components/DatePicker.js?v=3';
+import { formatNumber, formatRank, JsonToCSV, JsonToPDF, getDefaultDateRange } from '../utils/formatters.js?v=4';
+import { fetchApi, BASE_URL } from '../utils/api.js?v=5';
+import { decryptQuery, encryptQuery } from '../utils/crypto.js?v=2';
 
 
 export default {

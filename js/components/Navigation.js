@@ -1,4 +1,4 @@
-import { fetchApi } from '../utils/api.js?v=4';
+import { fetchApi } from '../utils/api.js?v=5';
 import { formatRank } from '../utils/formatters.js';
 
 export default {

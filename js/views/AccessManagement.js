@@ -1,11 +1,11 @@
-import MainLayout from '../layouts/MainLayout.js?v=25';
-import SearchInput from '../components/SearchInput.js?v=2';
-import DataTable from '../components/DataTable.js?v=34';
-import ActionDropdown from '../components/ActionDropdown.js?v=2';
-import Modal from '../components/Modal.js?v=2';
-import FormInput from '../components/FormInput.js?v=2';
-import { fetchApi } from '../utils/api.js?v=4';
-import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=1';
+import MainLayout from '../layouts/MainLayout.js?v=26';
+import SearchInput from '../components/SearchInput.js?v=3';
+import DataTable from '../components/DataTable.js?v=35';
+import ActionDropdown from '../components/ActionDropdown.js?v=3';
+import Modal from '../components/Modal.js?v=3';
+import FormInput from '../components/FormInput.js?v=3';
+import { fetchApi } from '../utils/api.js?v=5';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=2';
 import { countryCodes } from '../data/country.js';
 
 export default {
@@ -33,7 +33,10 @@ export default {
                 { key: 'moonbot_username', label: 'MOONBOT USERNAME', sortable: true },
                 { key: 'role_label', label: 'ROLES', align: 'center' },
                 { key: 'is_active', label: 'STATUS', align: 'center' },
-                { key: 'last_login', label: 'LAST LOGIN', sortable: true }
+                { key: 'last_login', label: 'LAST LOGIN', sortable: true },
+                { key: 'last_export_bot_health', label: 'LAST EXPORT BOT HEALTH', sortable: false },
+                { key: 'last_export_trading_activity', label: 'LAST EXPORT TRADING ACTIVITY', sortable: false },
+                { key: 'last_export_pipeline', label: 'LAST EXPORT PIPELINE', sortable: false }
             ],
             actions: [
                 { key: 'edit', label: 'Edit User', color: 'blue' },
@@ -283,6 +286,11 @@ export default {
             } catch (err) {
                 console.error('Failed to fetch roles:', err);
             }
+        },
+        getExportFeatureDate(row, feature) {
+            if (!row || !Array.isArray(row.export_features)) return null;
+            const feat = row.export_features.find(f => f.feature === feature);
+            return feat ? feat.last_export_at : null;
         },
         formatDate(dateString) {
             if (!dateString) return 'Never';
@@ -702,6 +710,17 @@ export default {
                     <!-- Custom last login cell -->
                     <template #cell-last_login="{ value }">
                         <span class="text-gray-500">{{ formatDate(value) }}</span>
+                    </template>
+
+                    <!-- Custom last export cells -->
+                    <template #cell-last_export_bot_health="{ row }">
+                        <span class="text-gray-500">{{ formatDate(getExportFeatureDate(row, 'bot_health')) }}</span>
+                    </template>
+                    <template #cell-last_export_trading_activity="{ row }">
+                        <span class="text-gray-500">{{ formatDate(getExportFeatureDate(row, 'trading_activity')) }}</span>
+                    </template>
+                    <template #cell-last_export_pipeline="{ row }">
+                        <span class="text-gray-500">{{ formatDate(getExportFeatureDate(row, 'pipeline')) }}</span>
                     </template>
 
                     <!-- Custom status cell -->
