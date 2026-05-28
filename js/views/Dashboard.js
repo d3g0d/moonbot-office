@@ -1,7 +1,7 @@
-import MainLayout from '../layouts/MainLayout.js?v=25';
-import { formatNumber, getDefaultDateRange } from '../utils/formatters.js?v=2';
-import { fetchApi } from '../utils/api.js?v=4';
-import DatePicker from '../components/DatePicker.js?v=2';
+import MainLayout from '../layouts/MainLayout.js?v=26';
+import { formatNumber, getDefaultDateRange } from '../utils/formatters.js?v=3';
+import { fetchApi } from '../utils/api.js?v=5';
+import DatePicker from '../components/DatePicker.js?v=3';
 
 export default {
     name: 'Dashboard',
