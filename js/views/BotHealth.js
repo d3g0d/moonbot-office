@@ -1,11 +1,11 @@
-import MainLayout from '../layouts/MainLayout.js?v=27';
+import MainLayout from '../layouts/MainLayout.js?v=28';
 import SearchInput from '../components/SearchInput.js';
-import DataTable from '../components/DataTable.js?v=36';
-import FilterDropdown from '../components/FilterDropdown.js?v=6';
-import DatePicker from '../components/DatePicker.js?v=4';
-import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=5'; 
-import { fetchApi, BASE_URL } from '../utils/api.js?v=6';
-import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=3';
+import DataTable from '../components/DataTable.js?v=37';
+import FilterDropdown from '../components/FilterDropdown.js?v=7';
+import DatePicker from '../components/DatePicker.js?v=5';
+import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=6'; 
+import { fetchApi, BASE_URL } from '../utils/api.js?v=7';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=4';
 export default {
     name: 'BotHealth',
     components: {

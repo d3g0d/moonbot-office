@@ -5,57 +5,57 @@ const routes = [
     {
         path: '/',
         name: 'Dashboard',
-        component: () => import('./views/Dashboard.js?v=6') // Lazy load with cache bust
+        component: () => import('./views/Dashboard.js?v=7') // Lazy load with cache bust
     },
     {
         path: '/login',
         name: 'Login',
-        component: () => import('./views/Login.js?v=15') // Login pagement version
+        component: () => import('./views/Login.js?v=16') // Login pagement version
     },
     {
         path: '/otp',
         name: 'OTPVerification',
-        component: () => import('./views/OTPVerification.js?v=9') // OTP Verification pagersion
+        component: () => import('./views/OTPVerification.js?v=10') // OTP Verification pagersion
     },
     {
         path: '/access-management',
         name: 'AccessManagement',
-        component: () => import('./views/AccessManagement.js?v=21') // Access Management page
+        component: () => import('./views/AccessManagement.js?v=22') // Access Management page
     },
     {
         path: '/bot-health',
         name: 'BotHealth',
-        component: () => import('./views/BotHealth.js?v=17') // Bot Health page
+        component: () => import('./views/BotHealth.js?v=18') // Bot Health page
     },
     {
         path: '/bot-health/drilldown',
         name: 'BotHealthDrilldown',
-        component: () => import('./views/BotHealthDrilldown.js?v=9') // Bot Health Drilldown page
+        component: () => import('./views/BotHealthDrilldown.js?v=10') // Bot Health Drilldown page
     },
     {
         path: '/trading-activity',
         name: 'TradingActivity',
-        component: () => import('./views/TradingActivity.js?v=20') // Trading Activity page
+        component: () => import('./views/TradingActivity.js?v=21') // Trading Activity page
     },
     {
         path: '/trading-activity/drilldown',
         name: 'TradingActivityDrilldown',
-        component: () => import('./views/TradingActivityDrilldown.js?v=11') // Trading Activity Drilldown page
+        component: () => import('./views/TradingActivityDrilldown.js?v=12') // Trading Activity Drilldown page
     },
     {
         path: '/pipeline',
         name: 'Pipeline',
-        component: () => import('./views/Pipeline.js?v=13') // Pipeline page
+        component: () => import('./views/Pipeline.js?v=14') // Pipeline page
     },
     {
         path: '/pipeline/drilldown',
         name: 'PipelineDrilldown',
-        component: () => import('./views/PipelineDrilldown.js?v=9') // Pipeline Drilldown page
+        component: () => import('./views/PipelineDrilldown.js?v=10') // Pipeline Drilldown page
     },
     {
         path: '/change-tracker',
         name: 'ChangeTracker',
-        component: () => import('./views/ChangeTracker.js?v=12') // Change Tracker page
+        component: () => import('./views/ChangeTracker.js?v=13') // Change Tracker page
     },
     // Add more routes here as needed
 ];
