@@ -1,10 +1,10 @@
-import MainLayout from '../layouts/MainLayout.js?v=27';
-import DataTable from '../components/DataTable.js?v=36';
+import MainLayout from '../layouts/MainLayout.js?v=28';
+import DataTable from '../components/DataTable.js?v=37';
 import SearchInput from '../components/SearchInput.js';
-import DatePicker from '../components/DatePicker.js?v=4';
-import { fetchApi } from '../utils/api.js?v=6';
-import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=5';
-import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=3';
+import DatePicker from '../components/DatePicker.js?v=5';
+import { fetchApi } from '../utils/api.js?v=7';
+import { formatNumber, formatRank, leaderRankLabels } from '../utils/formatters.js?v=6';
+import { encryptQuery, decryptQuery } from '../utils/crypto.js?v=4';
 
 export default {
     name: 'ChangeTracker',
